@@ -193,6 +193,10 @@ export function generationRoutes(dataDir: string) {
       // custom blocks and author-input would leak through and bypass the
       // prewriter's block config.
       const isPrewriterMode = story.settings.generationMode === 'prewriter'
+      // Clarify-before-generate only applies in prewriter mode.
+      const clarifyEnabled = isPrewriterMode && (story.settings.clarifyBeforeGenerate ?? false)
+      const clarifications = body.clarifications ?? []
+      const clarifyRound = body.clarifyRound ?? 0
       if (isPrewriterMode) {
         blocks = blocks.filter(b => b.id !== 'author-input' && b.source !== 'custom')
       }
@@ -276,14 +280,32 @@ export function generationRoutes(dataDir: string) {
                   maxSteps: prewriterMaxSteps,
                   abortSignal: abortController.signal,
                   providerOptions,
+                  clarifyEnabled,
+                  clarifications,
+                  round: clarifyRound,
                   onEvent: (event) => {
                     if (event.type === 'text') {
                       emit({ type: 'prewriter-text', text: event.text })
+                    } else if (event.type === 'questions') {
+                      // Canonical clarify-questions is emitted from the result below.
                     } else {
                       emit(event)
                     }
                   },
                 })
+
+                // The prewriter chose to ask the author questions instead of
+                // finalizing a brief. Surface them and end the turn — no writer,
+                // no save. The client answers and re-POSTs with clarifications.
+                if (prewriterResult.questions && prewriterResult.questions.length > 0) {
+                  // Inner finally below unregisters the prewriter activity; outer
+                  // finally unregisters the generation activity. Returning here
+                  // skips the writer and the save block entirely.
+                  emit({ type: 'clarify-questions', questions: prewriterResult.questions, round: clarifyRound })
+                  emit({ type: 'finish', finishReason: 'clarify', stepCount: prewriterResult.stepCount, stopped: true })
+                  controller.close()
+                  return
+                }
                 prewriterBrief = prewriterResult.brief
                 prewriterReasoning = prewriterResult.reasoning || undefined
                 prewriterDurationMs = prewriterResult.durationMs
@@ -594,6 +616,8 @@ export function generationRoutes(dataDir: string) {
         saveResult: t.Optional(t.Boolean()),
         mode: t.Optional(t.Union([t.Literal('generate'), t.Literal('regenerate'), t.Literal('refine')])),
         fragmentId: t.Optional(t.String()),
+        clarifications: t.Optional(t.Array(t.Object({ question: t.String(), answer: t.String() }))),
+        clarifyRound: t.Optional(t.Number()),
       }),
       detail: { summary: 'Generate prose via streaming NDJSON' },
     })
