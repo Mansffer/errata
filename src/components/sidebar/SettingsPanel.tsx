@@ -655,6 +655,16 @@ export function SettingsPanel({
                 disabled={updateMutation.isPending}
               />
             </SettingRow>
+            {(story.settings.generationMode ?? 'standard') === 'prewriter' && (
+              <SettingRow label="Clarify before writing" description="Let the prewriter ask you questions when your direction is ambiguous, before it writes.">
+                <ToggleSwitch
+                  on={story.settings.clarifyBeforeGenerate ?? false}
+                  onToggle={() => updateMutation.mutate({ clarifyBeforeGenerate: !(story.settings.clarifyBeforeGenerate ?? false) })}
+                  disabled={updateMutation.isPending}
+                  label="Toggle clarify before writing"
+                />
+              </SettingRow>
+            )}
             <SettingRow label="Output format" helpTopic="generation#output-format">
               <SegmentedControl
                 value={story.settings.outputFormat}

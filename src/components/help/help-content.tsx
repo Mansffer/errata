@@ -243,9 +243,18 @@ export const HELP_SECTIONS: HelpSection[] = [
               A helper model can sketch a brief, pacing, or directions before the final writer pass,
               which can improve structure when you want more guided output.
             </P>
+            <P>
+              With Prewriter on, you can also enable <strong className="text-foreground/75">Clarify
+              before writing</strong>. When your direction is ambiguous, the prewriter pauses to ask
+              you a few targeted questions — pick from the offered options or type your own — and
+              folds your answers into the brief before any prose is written. If everything is clear
+              it skips straight to writing, and you can always choose <em>Skip &amp; write</em> to
+              proceed without answering. Answers guide that one passage only and are never saved.
+            </P>
             <Tip>
               Use Standard for direct continuation. Use Prewriter when you want the model to think
-              through the next move before drafting prose.
+              through the next move before drafting prose — and Clarify when you'd rather be asked
+              than guess wrong.
             </Tip>
           </>
         ),
