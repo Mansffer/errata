@@ -1409,6 +1409,27 @@ return rules.map(r => r.content).join('\\n')`}</div>
         ),
       },
       {
+        id: 'read-aloud',
+        title: 'Read aloud',
+        content: (
+          <>
+            <P>
+              Turn on <strong className="text-foreground/75">Read aloud</strong> in Settings to add a
+              Read aloud action to every passage and a slim player at the bottom of the screen. It is
+              off by default. Passages are synthesized and played sentence by sentence, so audio
+              starts almost immediately instead of waiting for the whole passage.
+            </P>
+            <P>
+              <strong className="text-foreground/75">Browser</strong> uses your system's built-in
+              speech voices — instant, nothing to download. <strong className="text-foreground/75">Neural</strong>
+              {' '}uses Piper voices that run entirely in your browser; the first time you use a voice
+              it downloads a model (roughly 20–60 MB) and caches it for offline use afterward. Tune
+              speed, pitch, and volume, and use Test voice to preview.
+            </P>
+          </>
+        ),
+      },
+      {
         id: 'prompt-control',
         title: 'Fragment ordering',
         content: (

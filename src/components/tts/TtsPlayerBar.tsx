@@ -1,0 +1,127 @@
+import { useEffect, useState } from 'react'
+import { Play, Pause, Square, Loader2, AlertCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useTtsState, togglePlayPause, stopTts } from '@/lib/tts'
+
+/**
+ * Persistent "now reading" bar pinned to the bottom of the viewport while a
+ * passage is read aloud. Reads the TTS store; mounts only when something is
+ * playing, loading, or errored.
+ */
+export function TtsPlayerBar() {
+  const { status, title, chunkIndex, chunkCount, engine, error } = useTtsState()
+  const visible = status !== 'idle' || !!error
+
+  // Mount-in transition (re-runs each time the bar appears for a new passage).
+  const [shown, setShown] = useState(false)
+  useEffect(() => {
+    if (!visible) { setShown(false); return }
+    const raf = requestAnimationFrame(() => setShown(true))
+    return () => cancelAnimationFrame(raf)
+  }, [visible])
+
+  if (!visible) return null
+
+  const loading = status === 'loading'
+  const playing = status === 'playing'
+  // Current chunk counts as in-progress, so chunk i of n fills (i+1)/n.
+  const fill = chunkCount > 0 ? Math.min(1, (chunkIndex + 1) / chunkCount) : 0
+
+  return (
+    <div
+      role="region"
+      aria-label="Read-aloud player"
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-40 border-t border-border/50 bg-card/95 backdrop-blur-md',
+        'shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.18)]',
+        'transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+        'motion-reduce:transition-none',
+        shown ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
+      )}
+    >
+      <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
+        {/* Primary affordance: play / pause / loading */}
+        <button
+          type="button"
+          onClick={togglePlayPause}
+          disabled={loading || !!error}
+          aria-label={playing ? 'Pause reading' : 'Resume reading'}
+          className={cn(
+            'relative grid size-9 shrink-0 place-items-center rounded-full',
+            'bg-primary/12 text-primary transition-colors',
+            'hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+            'disabled:cursor-default disabled:opacity-70',
+          )}
+        >
+          {loading && (
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full ring-2 ring-primary/30 animate-pulse motion-reduce:animate-none"
+            />
+          )}
+          {loading
+            ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
+            : playing
+              ? <Pause className="size-4" />
+              : <Play className="size-4 translate-x-px" />}
+        </button>
+
+        {/* Now reading: title + progress */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <p className="min-w-0 flex-1 truncate font-prose text-[0.875rem] italic leading-tight text-foreground/85">
+              {error
+                ? <span className="inline-flex items-center gap-1.5 not-italic text-destructive"><AlertCircle className="size-3.5" />{error}</span>
+                : (title || 'Reading passage')}
+            </p>
+            {!error && (
+              <span className="shrink-0 font-mono text-[0.625rem] tabular-nums text-muted-foreground" aria-hidden>
+                {loading ? 'generating…' : `${chunkIndex + 1} / ${chunkCount}`}
+              </span>
+            )}
+          </div>
+
+          {/* Progress rule */}
+          {!error && (
+            <div
+              className="mt-1.5 h-[2px] w-full overflow-hidden rounded-full bg-border/50"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={chunkCount}
+              aria-valuenow={loading ? 0 : chunkIndex + 1}
+              aria-label="Reading progress"
+            >
+              {loading ? (
+                <span className="block h-full w-1/3 animate-[tts-indeterminate_1.4s_ease-in-out_infinite] rounded-full bg-primary/60 motion-reduce:w-full motion-reduce:animate-none" />
+              ) : (
+                <span
+                  className="block h-full origin-left rounded-full bg-primary/70 transition-transform duration-300 ease-out motion-reduce:transition-none"
+                  style={{ transform: `scaleX(${fill})` }}
+                />
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Engine hint + stop */}
+        {engine && !error && (
+          <span className="hidden shrink-0 font-mono text-[0.5625rem] uppercase tracking-[0.14em] text-muted-foreground/70 sm:inline">
+            {engine === 'piper' ? 'Piper' : 'Browser'}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={stopTts}
+          aria-label="Stop reading"
+          className={cn(
+            'grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors',
+            'hover:bg-accent/60 hover:text-foreground',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+          )}
+        >
+          <Square className="size-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}

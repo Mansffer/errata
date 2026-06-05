@@ -5,6 +5,7 @@ import { useTheme, useQuickSwitch, useCharacterMentions, useTimelineBar, usePros
 import { Settings2, ChevronRight, ExternalLink, Eye, EyeOff, Puzzle, RotateCcw, CircleHelp, Code, Wand2, Compass, ArrowLeft, Palette } from 'lucide-react'
 import { useHelp } from '@/hooks/use-help'
 import { CustomCssPanel } from '@/components/settings/CustomCssPanel'
+import { TtsSettings } from '@/components/settings/TtsSettings'
 import { ProseColorsPanel } from '@/components/settings/ProseColorsPanel'
 import { CustomTransformsPanel } from '@/components/settings/CustomTransformsPanel'
 import { ModelSelect } from '@/components/settings/ModelSelect'
@@ -589,6 +590,9 @@ export function SettingsPanel({
           />
         </div>
       </div>
+
+      {/* Read aloud (TTS) */}
+      <TtsSettings />
 
       {/* Writing */}
       <div>
