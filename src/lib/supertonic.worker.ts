@@ -17,21 +17,38 @@ const VOICES_BASE = `https://huggingface.co/${MODEL_ID}/resolve/main/voices`
 
 interface WorkerCtx {
   postMessage(message: unknown, transfer?: Transferable[]): void
-  addEventListener(type: 'message', listener: (e: MessageEvent) => void): void
+  addEventListener(type: string, listener: (e: Event) => void): void
 }
 const ctx = self as unknown as WorkerCtx
+
+// Surface otherwise-invisible worker failures (module load, async aborts) to the
+// main thread so they can be logged instead of appearing as a blank "crashed".
+function reportFatal(msg: string) {
+  try { ctx.postMessage({ type: 'fatal', error: msg }) } catch { /* ignore */ }
+}
+ctx.addEventListener('error', (e) => {
+  const ev = e as ErrorEvent
+  reportFatal(`${ev.message ?? 'error'}${ev.filename ? ` @ ${ev.filename}:${ev.lineno}` : ''}`)
+})
+ctx.addEventListener('unhandledrejection', (e) => {
+  const reason = (e as PromiseRejectionEvent).reason
+  reportFatal(`unhandledrejection: ${reason instanceof Error ? reason.message : String(reason)}`)
+})
 
 let ttsPromise: Promise<TextToAudioPipeline> | null = null
 
 function getTts(): Promise<TextToAudioPipeline> {
   if (ttsPromise) return ttsPromise
   ttsPromise = (async () => {
-    try {
-      return await pipeline('text-to-speech', MODEL_ID, { device: 'webgpu', dtype: 'fp32' })
-    } catch {
-      // No WebGPU in this worker — fall back to CPU/WASM.
-      return await pipeline('text-to-speech', MODEL_ID, { device: 'wasm', dtype: 'fp32' })
+    // Only attempt WebGPU when the worker actually exposes it; requesting an
+    // unavailable backend can fail hard rather than reject cleanly.
+    const hasGpu = typeof navigator !== 'undefined' && 'gpu' in navigator
+    if (hasGpu) {
+      try {
+        return await pipeline('text-to-speech', MODEL_ID, { device: 'webgpu', dtype: 'fp32' })
+      } catch { /* fall through to WASM */ }
     }
+    return await pipeline('text-to-speech', MODEL_ID, { device: 'wasm', dtype: 'fp32' })
   })().catch((err) => { ttsPromise = null; throw err })
   return ttsPromise
 }
@@ -45,8 +62,8 @@ interface SynthMessage {
   speed?: number
 }
 
-ctx.addEventListener('message', async (e: MessageEvent) => {
-  const { id, type, voiceId, text, steps, speed } = e.data as SynthMessage
+ctx.addEventListener('message', async (e: Event) => {
+  const { id, type, voiceId, text, steps, speed } = (e as MessageEvent).data as SynthMessage
   if (type !== 'synth') return
   try {
     const tts = await getTts()

@@ -294,19 +294,24 @@ function getNeuralWorker(): Worker {
   if (neuralWorker) return neuralWorker
   const worker = new Worker(new URL('./supertonic.worker.ts', import.meta.url), { type: 'module' })
   worker.onmessage = (e: MessageEvent) => {
-    const { id, ok, buf, mime, error } = e.data as { id: number; ok: boolean; buf?: ArrayBuffer; mime?: string; error?: string }
-    const p = pending.get(id)
+    const data = e.data as { type?: string; id?: number; ok?: boolean; buf?: ArrayBuffer; mime?: string; error?: string }
+    if (data.type === 'fatal') { ttsLog(`✗ worker fatal: ${data.error}`); return }
+    if (data.id == null) return
+    const p = pending.get(data.id)
     if (!p) return
-    pending.delete(id)
-    if (ok && buf) p.resolve(new Blob([buf], { type: mime || 'audio/wav' }))
-    else p.reject(new Error(error || 'Speech synthesis failed'))
+    pending.delete(data.id)
+    if (data.ok && data.buf) p.resolve(new Blob([data.buf], { type: data.mime || 'audio/wav' }))
+    else p.reject(new Error(data.error || 'Speech synthesis failed'))
   }
-  worker.onerror = () => {
-    for (const p of pending.values()) p.reject(new Error('The speech engine crashed.'))
+  worker.onerror = (e: ErrorEvent) => {
+    const detail = [e?.message, e?.filename && `${e.filename}:${e.lineno}:${e.colno}`].filter(Boolean).join(' ') || 'unknown worker error'
+    ttsLog(`✗ worker crashed: ${detail}`)
+    for (const p of pending.values()) p.reject(new Error(`Speech engine error: ${detail}`))
     pending.clear()
     neuralWorker?.terminate()
     neuralWorker = null
   }
+  worker.onmessageerror = () => ttsLog('✗ worker message error (could not deserialize)')
   neuralWorker = worker
   return worker
 }
