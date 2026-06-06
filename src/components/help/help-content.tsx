@@ -1424,8 +1424,8 @@ return rules.map(r => r.content).join('\\n')`}</div>
               speech voices — instant, nothing to download. <strong className="text-foreground/75">Supertonic</strong>
               {' '}is a high-quality neural voice that runs entirely in your browser (on the GPU where
               available); the first time you use it, the model downloads (~200 MB) and is cached for
-              offline use afterward. Pick a preset voice, tune quality, speed, and volume, and use
-              Test voice to preview.
+              offline use afterward. Pick a preset voice, tune quality, speed, pitch, and volume, and
+              use Test voice to preview.
             </P>
           </>
         ),

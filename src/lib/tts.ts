@@ -319,9 +319,12 @@ function getNeuralWorker(): Worker {
 function synthChunk(s: TtsSettings, text: string): Promise<Blob> {
   const worker = getNeuralWorker()
   const id = ++reqId
+  // Pitch is applied at playback (playbackRate with preservesPitch off), which
+  // also scales tempo — so pre-divide the model speed to keep net tempo at `rate`.
+  const modelSpeed = Math.max(0.5, Math.min(2, s.rate / (s.pitch || 1)))
   return new Promise<Blob>((resolve, reject) => {
     pending.set(id, { resolve, reject })
-    worker.postMessage({ id, type: 'synth', voiceId: s.supertonicVoiceId, text, steps: s.steps, speed: s.rate })
+    worker.postMessage({ id, type: 'synth', voiceId: s.supertonicVoiceId, text, steps: s.steps, speed: modelSpeed })
   })
 }
 
@@ -478,7 +481,10 @@ async function neuralPlay(i: number) {
 
   const audio = new Audio(URL.createObjectURL(blob))
   audio.volume = session.settings.volume
-  audio.playbackRate = 1 // Supertonic bakes speed into synthesis
+  // Speed is baked into synthesis; playbackRate shifts pitch (tempo is
+  // pre-compensated in the model speed), so disable pitch preservation.
+  audio.preservesPitch = false
+  audio.playbackRate = session.settings.pitch || 1
   audio.onended = () => {
     if (audio.src) URL.revokeObjectURL(audio.src)
     if (alive(t)) scheduleAdvance(i + 1, (n) => { void neuralPlay(n) })

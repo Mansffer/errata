@@ -153,9 +153,7 @@ export function TtsSettings() {
             )}
 
             <Slider label="Speed" value={s.rate} min={0.5} max={2} step={0.05} onChange={(v) => set({ rate: v })} format={(v) => `${v.toFixed(2)}×`} />
-            {s.engine === 'browser' && (
-              <Slider label="Pitch" value={s.pitch} min={0} max={2} step={0.05} onChange={(v) => set({ pitch: v })} format={(v) => v.toFixed(2)} />
-            )}
+            <Slider label="Pitch" value={s.pitch} min={0.5} max={2} step={0.05} onChange={(v) => set({ pitch: v })} format={(v) => `${v.toFixed(2)}×`} />
             <Slider label="Volume" value={s.volume} min={0} max={1} step={0.05} onChange={(v) => set({ volume: v })} format={(v) => `${Math.round(v * 100)}%`} />
 
             <div className="px-3 py-2.5">
