@@ -450,7 +450,7 @@ export function SettingsPanel({
   return (
     <div className="p-4 space-y-4" data-component-id="settings-panel-root">
       {/* Appearance */}
-      <div id="set-appearance" data-toc="Appearance" className="scroll-mt-2">
+      <div id="set-appearance" data-toc="Appearance" data-toc-group="Interface" className="scroll-mt-2">
         <label className="text-[0.625rem] text-muted-foreground uppercase tracking-wider mb-2 block">Appearance</label>
         <div className="rounded-lg border border-border/30 divide-y divide-border/20">
           <SettingRow label="Theme">
@@ -547,7 +547,7 @@ export function SettingsPanel({
       </div>
 
       {/* Typography */}
-      <div id="set-typography" data-toc="Typography" className="scroll-mt-2">
+      <div id="set-typography" data-toc="Typography" data-toc-group="Interface" className="scroll-mt-2">
         <div className="flex items-center justify-between mb-2">
           <label className="text-[0.625rem] text-muted-foreground uppercase tracking-wider">Typography</label>
           {hasCustomFonts && (
@@ -593,49 +593,20 @@ export function SettingsPanel({
       </div>
 
       {/* Read aloud (TTS) */}
-      <div id="set-read-aloud" data-toc="Read aloud" className="scroll-mt-2"><TtsSettings /></div>
+      <div id="set-read-aloud" data-toc="Read aloud" data-toc-group="Interface" className="scroll-mt-2"><TtsSettings /></div>
 
-      {/* Writing */}
-      <div id="set-writing" data-toc="Writing" className="scroll-mt-2">
-        <label className="text-[0.625rem] text-muted-foreground uppercase tracking-wider mb-2 block">Writing</label>
-        <div className="rounded-lg border border-border/30 divide-y divide-border/20">
-          <button
-            type="button"
-            onClick={() => setTransformsPanelOpen(true)}
-            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-accent/20 transition-colors"
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Wand2 className="size-3 text-muted-foreground" />
-                <p className="text-[0.75rem] font-medium text-foreground/80">Selection transforms</p>
-              </div>
-              <p className="text-[0.625rem] text-muted-foreground mt-0.5 leading-snug">
-                {enabledTransformCount} custom transform{enabledTransformCount !== 1 ? 's' : ''} active
-              </p>
-            </div>
-            <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setGuidedPromptsPanelOpen(true)}
-            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-accent/20 transition-colors"
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Compass className="size-3 text-muted-foreground" />
-                <p className="text-[0.75rem] font-medium text-foreground/80">Guided mode prompts</p>
-              </div>
-              <p className="text-[0.625rem] text-muted-foreground mt-0.5 leading-snug">
-                {story.settings.guidedContinuePrompt || story.settings.guidedSceneSettingPrompt || story.settings.guidedSuggestPrompt ? 'Custom prompts configured' : 'Using default prompts'}
-              </p>
-            </div>
-            <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
-          </button>
-        </div>
+      {/* LLM */}
+      <div id="set-providers" data-toc="Providers" data-toc-group="Writing" className="scroll-mt-2">
+        <LLMSection
+        story={story}
+        globalConfig={globalConfig ?? null}
+        updateMutation={updateMutation}
+        onManageProviders={onManageProviders}
+      />
       </div>
 
       {/* Generation */}
-      <div id="set-generation" data-toc="Generation" className="scroll-mt-2">
+      <div id="set-generation" data-toc="Generation" data-toc-group="Writing" className="scroll-mt-2">
         <div className="flex items-center gap-1.5 mb-2">
           <label className="text-[0.625rem] text-muted-foreground uppercase tracking-wider">Generation</label>
           <button
@@ -871,21 +842,50 @@ export function SettingsPanel({
         </div>
       </div>
 
-      {/* LLM */}
-      <div id="set-providers" data-toc="Providers" className="scroll-mt-2">
-        <LLMSection
-        story={story}
-        globalConfig={globalConfig ?? null}
-        updateMutation={updateMutation}
-        onManageProviders={onManageProviders}
-      />
+      {/* Authoring (transforms + guided prompts) */}
+      <div id="set-authoring" data-toc="Authoring" data-toc-group="Writing" className="scroll-mt-2">
+        <label className="text-[0.625rem] text-muted-foreground uppercase tracking-wider mb-2 block">Authoring</label>
+        <div className="rounded-lg border border-border/30 divide-y divide-border/20">
+          <button
+            type="button"
+            onClick={() => setTransformsPanelOpen(true)}
+            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-accent/20 transition-colors"
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <Wand2 className="size-3 text-muted-foreground" />
+                <p className="text-[0.75rem] font-medium text-foreground/80">Selection transforms</p>
+              </div>
+              <p className="text-[0.625rem] text-muted-foreground mt-0.5 leading-snug">
+                {enabledTransformCount} custom transform{enabledTransformCount !== 1 ? 's' : ''} active
+              </p>
+            </div>
+            <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setGuidedPromptsPanelOpen(true)}
+            className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-accent/20 transition-colors"
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <Compass className="size-3 text-muted-foreground" />
+                <p className="text-[0.75rem] font-medium text-foreground/80">Guided mode prompts</p>
+              </div>
+              <p className="text-[0.625rem] text-muted-foreground mt-0.5 leading-snug">
+                {story.settings.guidedContinuePrompt || story.settings.guidedSceneSettingPrompt || story.settings.guidedSuggestPrompt ? 'Custom prompts configured' : 'Using default prompts'}
+              </p>
+            </div>
+            <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+          </button>
+        </div>
       </div>
 
       {/* Remote access (auth + LAN + tunnel) */}
-      <div id="set-remote" data-toc="Remote" className="scroll-mt-2"><SharingPanel /></div>
+      <div id="set-remote" data-toc="Remote" data-toc-group="System" className="scroll-mt-2"><SharingPanel /></div>
 
       {/* Plugins */}
-      <div id="set-plugins" data-toc="Plugins" className="scroll-mt-2">
+      <div id="set-plugins" data-toc="Plugins" data-toc-group="System" className="scroll-mt-2">
         <div className="flex items-center gap-1.5 mb-3">
           <label className="text-[0.625rem] text-muted-foreground uppercase tracking-wider">Plugins</label>
           <button

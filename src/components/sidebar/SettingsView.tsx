@@ -20,6 +20,7 @@ interface SettingsViewProps {
 interface TocItem {
   id: string
   label: string
+  group: string
 }
 
 /**
@@ -51,7 +52,7 @@ export function SettingsView({
     const root = scrollRef.current
     if (!root) return
     const sections = Array.from(root.querySelectorAll<HTMLElement>('[data-toc]'))
-    setToc(sections.map((s) => ({ id: s.id, label: s.dataset.toc || s.id })))
+    setToc(sections.map((s) => ({ id: s.id, label: s.dataset.toc || s.id, group: s.dataset.tocGroup || '' })))
     setActiveId((prev) => prev || sections[0]?.id || '')
 
     const atBottom = () => root.scrollTop + root.clientHeight >= root.scrollHeight - 4
@@ -140,21 +141,27 @@ export function SettingsView({
             aria-label="Settings sections"
             className="hidden w-44 shrink-0 overflow-y-auto border-r border-border/30 p-2.5 sm:block"
           >
-            {toc.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => jump(item.id)}
-                aria-current={activeId === item.id ? 'true' : undefined}
-                className={cn(
-                  'block w-full rounded-md px-2.5 py-1.5 text-left text-[0.8125rem] transition-colors',
-                  activeId === item.id
-                    ? 'bg-primary/10 font-medium text-foreground'
-                    : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground/90',
+            {toc.map((item, i) => (
+              <div key={item.id}>
+                {item.group && item.group !== toc[i - 1]?.group && (
+                  <div className="px-2.5 pb-1 pt-3.5 text-[0.5625rem] font-medium uppercase tracking-[0.13em] text-muted-foreground/55 first:pt-1">
+                    {item.group}
+                  </div>
                 )}
-              >
-                {item.label}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => jump(item.id)}
+                  aria-current={activeId === item.id ? 'true' : undefined}
+                  className={cn(
+                    'block w-full rounded-md px-2.5 py-1.5 text-left text-[0.8125rem] transition-colors',
+                    activeId === item.id
+                      ? 'bg-primary/10 font-medium text-foreground'
+                      : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground/90',
+                  )}
+                >
+                  {item.label}
+                </button>
+              </div>
             ))}
           </nav>
 
