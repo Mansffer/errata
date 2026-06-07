@@ -37,6 +37,47 @@ function packLatestVersion(pack: Record<string, unknown>): string | undefined {
 }
 
 /**
+ * Flatten a hub pack-detail response into the client's ErratanetPackDetail shape:
+ * the latest version plus the manifest's summary fields hoisted to the top level
+ * (the hub keeps them under `manifest` / `versions`). Without this the browse
+ * panel reads undefined arrays (e.g. fragmentTypes) and crashes.
+ */
+function normalizePackDetail(pack: Record<string, unknown>): Record<string, unknown> {
+  const manifest = (pack.manifest && typeof pack.manifest === 'object' ? pack.manifest : {}) as Record<string, unknown>
+  const str = (...v: unknown[]) => v.find((x) => typeof x === 'string') as string | undefined
+  const arr = (...v: unknown[]) => (v.find((x) => Array.isArray(x)) ?? []) as unknown[]
+  const num = (...v: unknown[]) => v.find((x) => typeof x === 'number') as number | undefined
+  return {
+    ...pack,
+    version: packLatestVersion(pack) ?? str(manifest.version),
+    title: str(pack.title, manifest.title, pack.slug),
+    description: str(pack.description, manifest.description) ?? '',
+    contentKind: str(pack.contentKind, manifest.contentKind, pack.kind),
+    fragmentTypes: arr(pack.fragmentTypes, manifest.fragmentTypes),
+    fragmentCount: num(pack.fragmentCount, manifest.fragmentCount) ?? 0,
+    tags: arr(pack.tags, manifest.tags),
+    nsfw: typeof pack.nsfw === 'boolean' ? pack.nsfw : manifest.nsfw === true,
+    license: str(pack.license, manifest.license),
+    publisher: str(pack.publisher, manifest.publisher),
+    createdAt: str(pack.createdAt, manifest.createdAt),
+  }
+}
+
+/** Map a hub search summary (kind / latestVersion) to the client's ErratanetPackSummary. */
+function normalizeSearchItem(p: Record<string, unknown>): Record<string, unknown> {
+  const str = (...v: unknown[]) => v.find((x) => typeof x === 'string') as string | undefined
+  return {
+    ...p,
+    version: str(p.version, p.latestVersion) ?? '',
+    contentKind: str(p.contentKind, p.kind),
+    fragmentTypes: Array.isArray(p.fragmentTypes) ? p.fragmentTypes : [],
+    fragmentCount: typeof p.fragmentCount === 'number' ? p.fragmentCount : 0,
+    tags: Array.isArray(p.tags) ? p.tags : [],
+    nsfw: typeof p.nsfw === 'boolean' ? p.nsfw : false,
+  }
+}
+
+/**
  * The caller-supplied half of a pack manifest, shared by the publish endpoint.
  * The build derives everything else (contentKind, hashes, counts, createdAt).
  */
@@ -169,7 +210,14 @@ export function erratanetRoutes(dataDir: string) {
     // Full-text search across published packs. Public (no token required).
     .get('/erratanet/search', async ({ query, set }) => {
       try {
-        return await hubSearch(dataDir, query.q ?? '')
+        // The client expects { results: [...] }; hubSearch yields the bare array.
+        // The hub's search summaries use kind / latestVersion, so map them to the
+        // client's contentKind / version (and default the array fields).
+        const raw = await hubSearch(dataDir, query.q ?? '')
+        const results = (Array.isArray(raw) ? raw : ([] as unknown[])).map((p) =>
+          normalizeSearchItem(p as Record<string, unknown>),
+        )
+        return { results }
       } catch (e) {
         set.status = 502
         return { error: errorMessage(e) }
@@ -186,8 +234,7 @@ export function erratanetRoutes(dataDir: string) {
     .get('/erratanet/packs/:id', async ({ params, set }) => {
       try {
         const pack = await hubGetPack(dataDir, decodeURIComponent(params.id))
-        const version = packLatestVersion(pack as Record<string, unknown>)
-        return version ? { ...pack, version } : pack
+        return normalizePackDetail(pack as Record<string, unknown>)
       } catch (e) {
         set.status = 502
         return { error: errorMessage(e) }

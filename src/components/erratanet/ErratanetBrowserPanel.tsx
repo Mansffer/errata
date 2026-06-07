@@ -93,8 +93,10 @@ export function ErratanetBrowserPanel({ storyId, onClose }: ErratanetBrowserPane
     setSearching(true)
     setSearchError(null)
     try {
-      const res = await api.erratanet.search(q)
-      setResults(res.results)
+      const res = (await api.erratanet.search(q)) as unknown as
+        | ErratanetPackSummary[]
+        | { results?: ErratanetPackSummary[] }
+      setResults(Array.isArray(res) ? res : res.results ?? [])
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : 'Search failed.')
       setResults(null)
@@ -341,12 +343,12 @@ function ResultRow({
         )}
         <div className="flex flex-wrap items-center gap-1 mt-1.5">
           <span className="text-[0.5625rem] text-muted-foreground tabular-nums mr-0.5">
-            {result.fragmentCount} {result.fragmentCount === 1 ? 'fragment' : 'fragments'}
+            {result.fragmentCount ?? 0} {result.fragmentCount === 1 ? 'fragment' : 'fragments'}
           </span>
-          {result.fragmentTypes.slice(0, 4).map((t) => (
+          {(result.fragmentTypes ?? []).slice(0, 4).map((t) => (
             <Badge key={t} variant="outline" className="text-[0.5625rem] h-3.5 px-1">{t}</Badge>
           ))}
-          {result.tags.slice(0, 3).map((tag) => (
+          {(result.tags ?? []).slice(0, 3).map((tag) => (
             <span key={tag} className="text-[0.5625rem] text-muted-foreground/80 px-1 rounded bg-muted/60">#{tag}</span>
           ))}
         </div>
@@ -414,29 +416,29 @@ function PackDetailView({
           {/* Metadata */}
           <div className="grid grid-cols-2 gap-3 text-xs">
             <Meta label="Contents">
-              {pack.fragmentCount} {pack.fragmentCount === 1 ? 'fragment' : 'fragments'}
+              {pack.fragmentCount ?? 0} {pack.fragmentCount === 1 ? 'fragment' : 'fragments'}
             </Meta>
             <Meta label="License">{pack.license || 'unspecified'}</Meta>
           </div>
 
-          {pack.fragmentTypes.length > 0 && (
+          {(pack.fragmentTypes?.length ?? 0) > 0 && (
             <div>
               <span className="text-[0.625rem] uppercase tracking-wider text-muted-foreground mb-1.5 block">
                 Fragment types
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {pack.fragmentTypes.map((t) => (
+                {(pack.fragmentTypes ?? []).map((t) => (
                   <Badge key={t} variant="outline" className="text-[0.625rem] h-5">{t}</Badge>
                 ))}
               </div>
             </div>
           )}
 
-          {pack.tags.length > 0 && (
+          {(pack.tags?.length ?? 0) > 0 && (
             <div>
               <span className="text-[0.625rem] uppercase tracking-wider text-muted-foreground mb-1.5 block">Tags</span>
               <div className="flex flex-wrap gap-1.5">
-                {pack.tags.map((tag) => (
+                {(pack.tags ?? []).map((tag) => (
                   <span key={tag} className="text-[0.6875rem] text-muted-foreground px-1.5 py-0.5 rounded bg-muted/60">#{tag}</span>
                 ))}
               </div>

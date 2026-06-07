@@ -129,9 +129,11 @@ export async function search(dataDir: string, query: string): Promise<HubPackage
   const res = await fetch(hubEndpoint(hubUrl, '/api/v1/packages', { q: query }), {
     headers: { Accept: 'application/json' },
   })
-  const json = await parseJson<{ packages?: HubPackageSummary[] } | HubPackageSummary[]>(res)
+  const json = await parseJson<
+    { results?: HubPackageSummary[]; packages?: HubPackageSummary[] } | HubPackageSummary[]
+  >(res)
   if (Array.isArray(json)) return json
-  return json.packages ?? []
+  return json.results ?? json.packages ?? []
 }
 
 export async function getPack(
