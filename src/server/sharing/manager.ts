@@ -27,6 +27,8 @@ interface State {
   tunnelUrl: string | null
   tunnelStatus: TunnelStatus
   tunnelError: string | null
+  /** Bumped on every stop so an in-flight startTunnel can detect it was cancelled. */
+  tunnelEpoch: number
 }
 
 const state: State = {
@@ -39,6 +41,7 @@ const state: State = {
   tunnelUrl: null,
   tunnelStatus: 'stopped',
   tunnelError: null,
+  tunnelEpoch: 0,
 }
 
 function authReady(s: SharingConfig | null): boolean {
@@ -133,6 +136,8 @@ function stopProxy(): void {
 }
 
 function stopTunnel(): void {
+  // Invalidate any startTunnel that's mid-download so it won't spawn after this.
+  state.tunnelEpoch++
   if (state.tunnelProc) {
     try { state.tunnelProc.kill() } catch { /* ignore */ }
     state.tunnelProc = null
@@ -145,15 +150,27 @@ function stopTunnel(): void {
 async function startTunnel(dataDir: string): Promise<void> {
   if (state.tunnelProc) return
   if (!state.proxyPort) throw new Error('Proxy must be running before the tunnel')
+  const epoch = state.tunnelEpoch
   state.tunnelStatus = 'downloading'
   state.tunnelError = null
   let bin: string
   try {
     bin = await ensureCloudflared(dataDir)
   } catch (err) {
-    state.tunnelStatus = 'error'
-    state.tunnelError = err instanceof Error ? err.message : String(err)
-    logger.error('cloudflared download failed', { error: state.tunnelError })
+    // Only record the error if we're still the active start.
+    if (epoch === state.tunnelEpoch) {
+      state.tunnelStatus = 'error'
+      state.tunnelError = err instanceof Error ? err.message : String(err)
+      logger.error('cloudflared download failed', { error: state.tunnelError })
+    }
+    return
+  }
+
+  // The download can take a while; if the tunnel was disabled (or the proxy
+  // torn down) in the meantime, abort before spawning so we don't leave a
+  // public tunnel running after the user turned it off.
+  if (epoch !== state.tunnelEpoch || !state.proxyPort) {
+    logger.info('Tunnel start cancelled during download', { epoch, current: state.tunnelEpoch })
     return
   }
 
