@@ -60,10 +60,9 @@ export function getTtsSettings(): TtsSettings {
     const raw = localStorage.getItem(TTS_KEY)
     if (!raw) return TTS_DEFAULTS
     const stored = JSON.parse(raw) as Partial<TtsSettings>
-    // Migrate the old Piper engine id to Supertonic; drop anything unknown.
+    // Drop an unrecognized engine id so it falls back to the default.
     const eng = (stored as { engine?: string }).engine
-    if (eng === 'piper') stored.engine = 'supertonic'
-    else if (eng !== 'browser' && eng !== 'supertonic') delete stored.engine
+    if (eng !== 'browser' && eng !== 'supertonic') delete stored.engine
     return { ...TTS_DEFAULTS, ...stored }
   } catch {
     return TTS_DEFAULTS

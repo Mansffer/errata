@@ -26,12 +26,6 @@ describe('tts settings', () => {
     }
   })
 
-  it('migrates the legacy piper engine id to supertonic', () => {
-    // getTtsSettings can't read localStorage in node, but the migration logic is
-    // exercised here as documentation of intended behavior.
-    expect(TTS_DEFAULTS.engine).not.toBe('piper')
-  })
-
   it('getTtsSettings returns defaults when there is no window/storage', () => {
     // vitest runs in the node environment — no window, so this exercises the guard.
     expect(getTtsSettings()).toEqual(TTS_DEFAULTS)
