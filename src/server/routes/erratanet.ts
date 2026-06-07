@@ -18,6 +18,24 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Could not reach the hub.'
 }
 
+/** Pull the latest version from a hub pack response (distTags, then manifest, then versions). */
+function packLatestVersion(pack: Record<string, unknown>): string | undefined {
+  const distTags = pack.distTags as { latest?: unknown } | undefined
+  if (typeof distTags?.latest === 'string') return distTags.latest
+  const manifest = pack.manifest as { version?: unknown } | undefined
+  if (typeof manifest?.version === 'string') return manifest.version
+  const versions = pack.versions
+  if (Array.isArray(versions) && versions.length > 0) {
+    const first = versions[0]
+    if (typeof first === 'string') return first
+    if (first && typeof first === 'object') {
+      const v = (first as { version?: unknown }).version
+      if (typeof v === 'string') return v
+    }
+  }
+  return undefined
+}
+
 /**
  * The caller-supplied half of a pack manifest, shared by the publish endpoint.
  * The build derives everything else (contentKind, hashes, counts, createdAt).
@@ -162,9 +180,14 @@ export function erratanetRoutes(dataDir: string) {
     })
 
     // Fetch a single pack's metadata. `id` may arrive url-encoded (@handle/slug).
+    // The hub response keeps the latest version in distTags/manifest/versions,
+    // not a top-level field; normalize a `version` so the client (and the
+    // publish dialog's version bump) can read the current latest directly.
     .get('/erratanet/packs/:id', async ({ params, set }) => {
       try {
-        return await hubGetPack(dataDir, decodeURIComponent(params.id))
+        const pack = await hubGetPack(dataDir, decodeURIComponent(params.id))
+        const version = packLatestVersion(pack as Record<string, unknown>)
+        return version ? { ...pack, version } : pack
       } catch (e) {
         set.status = 502
         return { error: errorMessage(e) }
