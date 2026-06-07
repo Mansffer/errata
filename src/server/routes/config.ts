@@ -11,8 +11,13 @@ import {
   maskApiKey,
 } from '../config/storage'
 import { ProviderConfigSchema } from '../config/schema'
+import {
+  createOpenRouterOAuthAuthorizationUrl,
+  ensureOpenRouterOAuthCallbackBridge,
+  exchangeAndSaveOpenRouterOAuthCode,
+  isOpenRouterOAuthCallbackBridgeAvailable,
+} from '../openrouter-oauth-callback'
 
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 const OPENROUTER_FREE_MODEL_ID = 'openrouter/free'
 
 function maskConfigProviders<T extends { providers: Array<{ apiKey: string }> }>(config: T): T {
@@ -263,60 +268,20 @@ export function configRoutes(dataDir: string) {
       }),
     })
 
+    .post('/config/openrouter/oauth/start', async ({ set }) => {
+      await ensureOpenRouterOAuthCallbackBridge()
+      if (!isOpenRouterOAuthCallbackBridgeAvailable()) {
+        set.status = 409
+        return { error: 'OpenRouter OAuth needs localhost:3000, but that port is already in use.' }
+      }
+      return createOpenRouterOAuthAuthorizationUrl(dataDir)
+    }, {
+      detail: { summary: 'Create an OpenRouter OAuth authorization URL' },
+    })
+
     .post('/config/openrouter/oauth/exchange', async ({ body, set }) => {
       try {
-        const res = await fetch('https://openrouter.ai/api/v1/auth/keys', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: body.code,
-            code_verifier: body.codeVerifier,
-            code_challenge_method: body.codeChallengeMethod,
-          }),
-        })
-        if (!res.ok) {
-          const text = await res.text().catch(() => res.statusText)
-          set.status = res.status
-          return { error: `OpenRouter OAuth failed: ${text}` }
-        }
-        const json = await res.json() as { key?: string }
-        if (!json.key) {
-          set.status = 502
-          return { error: 'OpenRouter OAuth did not return an API key' }
-        }
-
-        const config = await getGlobalConfig(dataDir)
-        const existingIdx = config.providers.findIndex((p) => isOpenRouterProvider(p))
-        const now = new Date().toISOString()
-        if (existingIdx === -1) {
-          const provider = ProviderConfigSchema.parse({
-            id: `prov-${Date.now().toString(36)}`,
-            name: 'OpenRouter',
-            preset: 'openrouter',
-            baseURL: OPENROUTER_BASE_URL,
-            apiKey: json.key,
-            defaultModel: OPENROUTER_FREE_MODEL_ID,
-            enabled: true,
-            customHeaders: {},
-            createdAt: now,
-          })
-          config.providers.push(provider)
-          if (!config.defaultProviderId) {
-            config.defaultProviderId = provider.id
-          }
-        } else {
-          config.providers[existingIdx] = {
-            ...config.providers[existingIdx],
-            name: config.providers[existingIdx].name || 'OpenRouter',
-            preset: 'openrouter',
-            baseURL: OPENROUTER_BASE_URL,
-            apiKey: json.key,
-            defaultModel: config.providers[existingIdx].defaultModel || OPENROUTER_FREE_MODEL_ID,
-            enabled: true,
-          }
-        }
-
-        await saveGlobalConfig(dataDir, config)
+        const config = await exchangeAndSaveOpenRouterOAuthCode(dataDir, body.code, body.codeVerifier)
         return maskConfigProviders(config)
       } catch (err) {
         set.status = 502

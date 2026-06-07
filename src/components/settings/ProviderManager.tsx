@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type ProviderConfigSafe } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -32,47 +32,6 @@ interface FormState {
 type ModelOption = { id: string; owned_by?: string; isFree?: boolean }
 
 const emptyForm: FormState = { preset: 'deepseek', name: 'DeepSeek', baseURL: 'https://api.deepseek.com', apiKey: '', defaultModel: 'deepseek-chat', customHeaders: [], temperature: '' }
-const OPENROUTER_OAUTH_SESSION_KEY = 'errata:openrouter-oauth'
-const OPENROUTER_LOCAL_CALLBACK = 'http://localhost:3000/openrouter-oauth-callback'
-
-function base64Url(bytes: Uint8Array): string {
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-function randomVerifier(): string {
-  const bytes = new Uint8Array(48)
-  crypto.getRandomValues(bytes)
-  return base64Url(bytes)
-}
-
-async function sha256Challenge(verifier: string): Promise<string> {
-  const data = new TextEncoder().encode(verifier)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return base64Url(new Uint8Array(digest))
-}
-
-function isOpenRouterAllowedCallbackOrigin(location: Location): boolean {
-  if (location.protocol === 'https:' && (location.port === '' || location.port === '443' || location.port === '3000')) {
-    return true
-  }
-  return location.protocol === 'http:' && location.hostname === 'localhost' && location.port === '3000'
-}
-
-function extractOpenRouterCode(value: string): string | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-
-  try {
-    const url = new URL(trimmed)
-    return url.searchParams.get('code') || null
-  } catch {
-    const query = trimmed.startsWith('?') ? trimmed.slice(1) : trimmed
-    const params = new URLSearchParams(query)
-    return params.get('code') || trimmed
-  }
-}
 
 /**
  * Compact provider list for the settings sidebar.
@@ -123,9 +82,7 @@ export function ProviderPanel({ onClose }: { onClose: () => void }) {
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; reply?: string; error?: string } | null>(null)
   const [oauthStatus, setOauthStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const [oauthNeedsPaste, setOauthNeedsPaste] = useState(false)
-  const [oauthCodeInput, setOauthCodeInput] = useState('')
-  const [oauthExchanging, setOauthExchanging] = useState(false)
+  const [oauthStarting, setOauthStarting] = useState(false)
 
   const { data: config } = useQuery({
     queryKey: ['global-config'],
@@ -142,84 +99,6 @@ export function ProviderPanel({ onClose }: { onClose: () => void }) {
     setUseCustomModel(false)
     setTestResult(null)
   }, [])
-
-  const finishOpenRouterOAuth = useCallback(async (code: string) => {
-    const stored = sessionStorage.getItem(OPENROUTER_OAUTH_SESSION_KEY)
-    if (!stored) {
-      setOauthStatus({ type: 'error', message: 'OpenRouter sign-in session expired. Try connecting again.' })
-      return
-    }
-
-    let session: { verifier?: string }
-    try {
-      session = JSON.parse(stored) as { verifier?: string }
-    } catch {
-      setOauthStatus({ type: 'error', message: 'OpenRouter sign-in session was invalid. Try connecting again.' })
-      return
-    }
-
-    if (!session.verifier) {
-      setOauthStatus({ type: 'error', message: 'OpenRouter sign-in could not be verified. Try connecting again.' })
-      return
-    }
-
-    setOauthExchanging(true)
-    try {
-      const nextConfig = await api.config.exchangeOpenRouterOAuth({
-        code,
-        codeVerifier: session.verifier,
-        codeChallengeMethod: 'S256',
-      })
-      sessionStorage.removeItem(OPENROUTER_OAUTH_SESSION_KEY)
-      queryClient.setQueryData(['global-config'], nextConfig)
-      setOauthStatus({ type: 'success', message: 'OpenRouter connected. The free router is ready to use.' })
-      setOauthNeedsPaste(false)
-      setOauthCodeInput('')
-      closeForm()
-    } catch (err) {
-      setOauthStatus({ type: 'error', message: err instanceof Error ? err.message : 'OpenRouter sign-in failed.' })
-    } finally {
-      setOauthExchanging(false)
-    }
-  }, [queryClient, closeForm])
-
-  useEffect(() => {
-    const url = new URL(window.location.href)
-    const code = url.searchParams.get('code')
-    const error = url.searchParams.get('openrouter_oauth_error')
-    const isOpenRouterCallback = url.searchParams.get('openrouter_oauth') === '1'
-    if (!isOpenRouterCallback) return
-
-    const stored = sessionStorage.getItem(OPENROUTER_OAUTH_SESSION_KEY)
-
-    const cleanupUrl = () => {
-      url.searchParams.delete('openrouter_oauth')
-      url.searchParams.delete('code')
-      url.searchParams.delete('openrouter_oauth_error')
-      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
-    }
-
-    setEditingId(null)
-    setForm({ ...emptyForm })
-
-    if (error) {
-      setOauthStatus({ type: 'error', message: `OpenRouter sign-in failed: ${error}` })
-      cleanupUrl()
-      return
-    }
-
-    if (!code) {
-      cleanupUrl()
-      return
-    }
-
-    if (!stored) {
-      setOauthStatus({ type: 'error', message: 'OpenRouter sign-in session expired. Try connecting again.' })
-      cleanupUrl()
-      return
-    }
-    finishOpenRouterOAuth(code).finally(cleanupUrl)
-  }, [finishOpenRouterOAuth])
 
   const addMutation = useMutation({
     mutationFn: (data: { name: string; preset?: string; baseURL: string; apiKey: string; defaultModel: string; customHeaders?: Record<string, string>; temperature?: number }) =>
@@ -250,53 +129,30 @@ export function ProviderPanel({ onClose }: { onClose: () => void }) {
     setFetchError(null)
     setUseCustomModel(false)
     setOauthStatus(null)
-    setOauthNeedsPaste(false)
-    setOauthCodeInput('')
   }
 
   const connectOpenRouter = async () => {
-    if (!crypto?.subtle || !crypto.getRandomValues) {
-      setOauthStatus({ type: 'error', message: 'This browser does not support secure OAuth PKCE.' })
-      return
+    setOauthStarting(true)
+    setOauthStatus(null)
+    try {
+      const result = await api.config.startOpenRouterOAuth()
+      window.open(result.authUrl, '_blank', 'noopener,noreferrer')
+      setOauthStatus({ type: 'success', message: 'Authorize OpenRouter in the new window. When it says connected, return here.' })
+
+      let attempts = 0
+      const poll = window.setInterval(async () => {
+        attempts += 1
+        await invalidate()
+        const latest = queryClient.getQueryData<{ providers?: Array<{ preset?: string; baseURL?: string }> }>(['global-config'])
+        if (latest?.providers?.some((p) => p.preset === 'openrouter' || p.baseURL?.includes('openrouter.ai')) || attempts >= 30) {
+          window.clearInterval(poll)
+        }
+      }, 2000)
+    } catch (err) {
+      setOauthStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to start OpenRouter sign-in.' })
+    } finally {
+      setOauthStarting(false)
     }
-    const verifier = randomVerifier()
-    const challenge = await sha256Challenge(verifier)
-    const canReturnHere = isOpenRouterAllowedCallbackOrigin(window.location)
-
-    const returnTo = new URL(window.location.pathname, window.location.origin)
-    const callback = canReturnHere
-      ? returnTo
-      : new URL(OPENROUTER_LOCAL_CALLBACK)
-    callback.searchParams.set('openrouter_oauth', '1')
-    if (!canReturnHere) callback.searchParams.set('return_to', returnTo.toString())
-
-    sessionStorage.setItem(OPENROUTER_OAUTH_SESSION_KEY, JSON.stringify({ verifier }))
-
-    const authUrl = new URL('https://openrouter.ai/auth')
-    authUrl.searchParams.set('callback_url', callback.toString())
-    authUrl.searchParams.set('code_challenge', challenge)
-    authUrl.searchParams.set('code_challenge_method', 'S256')
-
-    if (canReturnHere) {
-      window.location.assign(authUrl.toString())
-      return
-    }
-
-    setOauthNeedsPaste(true)
-    setOauthStatus({
-      type: 'success',
-      message: 'Authorize in the new tab. Errata will listen on localhost:3000 and return you here automatically; paste the returned URL only if it does not.',
-    })
-    window.open(authUrl.toString(), '_blank', 'noopener,noreferrer')
-  }
-
-  const handleOpenRouterCodeSubmit = () => {
-    const code = extractOpenRouterCode(oauthCodeInput)
-    if (!code) {
-      setOauthStatus({ type: 'error', message: 'Paste the full localhost callback URL or the code from OpenRouter.' })
-      return
-    }
-    void finishOpenRouterOAuth(code)
   }
 
   const duplicateMutation = useMutation({
@@ -461,8 +317,8 @@ export function ProviderPanel({ onClose }: { onClose: () => void }) {
               <>
                 <div className="rounded-md border border-border/30 bg-accent/10 p-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button type="button" size="sm" className="gap-1.5" onClick={connectOpenRouter}>
-                      <KeyRound className="size-3.5" />
+                    <Button type="button" size="sm" className="gap-1.5" onClick={connectOpenRouter} disabled={oauthStarting}>
+                      {oauthStarting ? <Loader2 className="size-3.5 animate-spin" /> : <KeyRound className="size-3.5" />}
                       Connect OpenRouter
                     </Button>
                   </div>
@@ -470,20 +326,6 @@ export function ProviderPanel({ onClose }: { onClose: () => void }) {
                     <p className={`mt-2 text-[0.6875rem] ${oauthStatus.type === 'success' ? 'text-emerald-500' : 'text-destructive'}`}>
                       {oauthStatus.message}
                     </p>
-                  )}
-                  {oauthNeedsPaste && (
-                    <div className="mt-3 flex gap-2">
-                      <input
-                        value={oauthCodeInput}
-                        onChange={(e) => setOauthCodeInput(e.target.value)}
-                        className="h-9 flex-1 rounded-md border border-border/50 bg-background px-3 text-xs outline-none focus:border-primary/50"
-                        placeholder="Paste localhost callback URL or code"
-                      />
-                      <Button type="button" size="sm" className="shrink-0 gap-1.5" onClick={handleOpenRouterCodeSubmit} disabled={oauthExchanging}>
-                        {oauthExchanging ? <Loader2 className="size-3.5 animate-spin" /> : <KeyRound className="size-3.5" />}
-                        Finish
-                      </Button>
-                    </div>
                   )}
                 </div>
 
