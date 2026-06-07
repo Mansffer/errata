@@ -553,6 +553,9 @@ function StoryEditorPage() {
         onCreateFragment={handleCreateFragment}
         selectedFragmentId={selectedFragment?.id}
         onManageProviders={() => {
+          // Close the settings overlay so the providers panel isn't stuck behind
+          // its blurred backdrop.
+          setActiveSection(null)
           setShowProviders(true)
           notifyPluginPanelOpen({ panel: 'providers' }, { storyId })
         }}
