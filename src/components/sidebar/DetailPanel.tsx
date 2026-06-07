@@ -13,7 +13,7 @@ import { ArchivePanel } from './ArchivePanel'
 import { TimelineManagerPanel } from './TimelineManagerPanel'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { X } from 'lucide-react'
+import { X, ChevronsLeftRight, ChevronsRightLeft } from 'lucide-react'
 import { componentId } from '@/lib/dom-ids'
 
 interface DetailPanelProps {
@@ -103,6 +103,9 @@ export function DetailPanel({
   const [visible, setVisible] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const librarianActivated = useRef(false)
+  // The librarian panel can expand to fill everything except the sidebar.
+  const [expanded, setExpanded] = useState(false)
+  const [expandedWidth, setExpandedWidth] = useState(0)
 
   // Keep content rendered for the section that's closing
   const [renderedSection, setRenderedSection] = useState(section)
@@ -121,6 +124,24 @@ export function DetailPanel({
       setVisible(false)
     }
   }, [open])
+
+  // Reset the expand when the panel switches away from the librarian.
+  useEffect(() => {
+    if (renderedSection !== 'agent-activity') setExpanded(false)
+  }, [renderedSection])
+
+  // While expanded, take half of the area beside the sidebar (a 50/50 split
+  // with the editor), tracked across viewport + sidebar-collapse changes.
+  useEffect(() => {
+    if (!expanded) return
+    const sidebar = document.querySelector('[data-component-id="story-sidebar"]') as HTMLElement | null
+    const measure = () => setExpandedWidth(Math.round((window.innerWidth - (sidebar?.offsetWidth ?? 0)) / 2))
+    measure()
+    window.addEventListener('resize', measure)
+    const ro = sidebar ? new ResizeObserver(measure) : null
+    if (sidebar && ro) ro.observe(sidebar)
+    return () => { window.removeEventListener('resize', measure); ro?.disconnect() }
+  }, [expanded])
 
   const handleTransitionEnd = () => {
     if (!open) {
@@ -142,6 +163,8 @@ export function DetailPanel({
     : SECTION_TITLES[activeSection] ?? activeSection
 
   const panelWidth = 440
+  const isLibrarian = activeSection === 'agent-activity'
+  const effectiveWidth = isLibrarian && expanded && expandedWidth > 0 ? expandedWidth : panelWidth
 
   // Settings is a wide, TOC-driven overlay that covers the sidebar, not the
   // inline detail panel.
@@ -269,16 +292,31 @@ export function DetailPanel({
       ref={containerRef}
       onTransitionEnd={handleTransitionEnd}
       className="border-r border-border/50 flex flex-col bg-background shrink-0 overflow-hidden transition-[width,opacity] duration-200 ease-out"
-      style={{ width: visible ? panelWidth : 0, opacity: visible ? 1 : 0 }}
+      style={{ width: visible ? effectiveWidth : 0, opacity: visible ? 1 : 0 }}
       data-component-id="detail-panel-root"
     >
-      <div className="flex flex-col h-full" style={{ width: panelWidth, minWidth: panelWidth }} data-component-id={componentId('detail-panel-section', activeSection)}>
+      <div className="flex flex-col h-full" style={{ width: effectiveWidth, minWidth: effectiveWidth }} data-component-id={componentId('detail-panel-section', activeSection)}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/50" data-component-id="detail-panel-header">
           <h2 className="font-display text-lg truncate">{title}</h2>
-          <Button size="icon" variant="ghost" className="size-7 text-muted-foreground hover:text-foreground" onClick={onClose} data-component-id="detail-panel-close">
-            <X className="size-4" />
-          </Button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {isLibrarian && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setExpanded((e) => !e)}
+                title={expanded ? 'Collapse panel' : 'Expand panel'}
+                aria-label={expanded ? 'Collapse librarian panel' : 'Expand librarian panel'}
+                data-component-id="detail-panel-expand"
+              >
+                {expanded ? <ChevronsRightLeft className="size-4" /> : <ChevronsLeftRight className="size-4" />}
+              </Button>
+            )}
+            <Button size="icon" variant="ghost" className="size-7 text-muted-foreground hover:text-foreground" onClick={onClose} data-component-id="detail-panel-close">
+              <X className="size-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}
