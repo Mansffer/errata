@@ -327,11 +327,11 @@ export function erratanetRoutes(dataDir: string) {
             return { error: 'Target story not found.' }
           }
           const created = await installFragmentBundle(dataDir, body.targetStoryId, unwrapped.bundle, provenance)
-          return { createdFragmentIds: created.map((f) => f.id) }
+          return { storyId: body.targetStoryId, fragmentCount: created.length, createdStory: false }
         }
 
         const meta = await installStoryPack(dataDir, unwrapped.storyFiles, provenance)
-        return { newStoryId: meta.id }
+        return { storyId: meta.id, fragmentCount: unwrapped.manifest.fragmentCount ?? 0, createdStory: true }
       } catch (e) {
         set.status = 422
         return { error: errorMessage(e) }
