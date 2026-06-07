@@ -747,20 +747,27 @@ export const ProseBlock = memo(function ProseBlock({
                     Analyze
                   </button>
                 )}
-                {ttsSettings.enabled && (
-                  <button
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[0.6875rem] transition-all ${isReadingThis ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'}`}
-                    onClick={() => {
-                      if (isReadingThis) stopTts()
-                      else playFragment(fragment.id, fragment.content, fragment.name, ttsSettings)
-                      setShowActions(false)
-                    }}
-                    data-component-id={`prose-${fragment.id}-read-aloud`}
-                  >
-                    {isReadingThis ? <Square className="size-3.5" /> : <Volume2 className="size-3.5" />}
-                    {isReadingThis ? 'Stop' : 'Read aloud'}
-                  </button>
-                )}
+                <button
+                  aria-disabled={!ttsSettings.enabled || undefined}
+                  title={ttsSettings.enabled ? undefined : 'Enable Read aloud in Settings to use this'}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[0.6875rem] transition-all ${
+                    !ttsSettings.enabled
+                      ? 'text-muted-foreground/40 cursor-not-allowed'
+                      : isReadingThis
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
+                  }`}
+                  onClick={() => {
+                    if (!ttsSettings.enabled) return
+                    if (isReadingThis) stopTts()
+                    else playFragment(fragment.id, fragment.content, fragment.name, ttsSettings)
+                    setShowActions(false)
+                  }}
+                  data-component-id={`prose-${fragment.id}-read-aloud`}
+                >
+                  {isReadingThis ? <Square className="size-3.5" /> : <Volume2 className="size-3.5" />}
+                  {isReadingThis ? 'Stop' : 'Read aloud'}
+                </button>
               </div>
             </div>
           )}
