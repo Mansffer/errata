@@ -203,6 +203,14 @@ describe('prewriter', () => {
       expect(writingBrief.content).toContain(brief)
     })
 
+    it('does not duplicate a leading writing brief heading from the prewriter', () => {
+      const blocks = createWriterBriefBlocks([], '## Writing Brief\n\nFocus on dialogue.', [])
+      const writingBrief = blocks.find((b) => b.id === 'writing-brief')!
+
+      expect(writingBrief.content.match(/## Writing Brief/g)).toHaveLength(1)
+      expect(writingBrief.content).toBe('## Writing Brief\n\nFocus on dialogue.')
+    })
+
     it('omits tools block when no tool lines provided', () => {
       const blocks = createWriterBriefBlocks([], 'A brief.', [])
       const ids = blocks.map((b) => b.id)

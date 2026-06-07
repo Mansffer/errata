@@ -474,6 +474,10 @@ export function createWriterBriefBlocks(
   modelId?: string,
 ): ContextBlock[] {
   const blocks: ContextBlock[] = []
+  const normalizedBrief = brief
+    .replace(/^\s{0,3}#{1,6}\s*Writing Brief\s*\n+/i, '')
+    .replace(/^\s*Writing Brief\s*:\s*\n+/i, '')
+    .trim()
 
   blocks.push({
     id: 'instructions',
@@ -531,7 +535,7 @@ export function createWriterBriefBlocks(
   blocks.push({
     id: 'writing-brief',
     role: 'user' as const,
-    content: `## Writing Brief\n\n${brief}`,
+    content: `## Writing Brief\n\n${normalizedBrief}`,
     order: 200,
     source: 'builtin',
   })
