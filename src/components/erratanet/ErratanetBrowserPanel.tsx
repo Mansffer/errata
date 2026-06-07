@@ -191,7 +191,7 @@ export function ErratanetBrowserPanel({ storyId, onClose }: ErratanetBrowserPane
               <ArrowLeft className="size-4" />
             </Button>
           )}
-          <h2 className="font-display text-lg">Browse Packs</h2>
+          <h2 className="font-display text-lg">Browse and Install Packs</h2>
           <span className="text-[0.625rem] text-muted-foreground uppercase tracking-wider">
             {selected ? 'Pack Detail' : 'Erratanet'}
           </span>

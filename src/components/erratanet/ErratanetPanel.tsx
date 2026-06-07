@@ -200,7 +200,7 @@ export function ErratanetPanel({ storyId, story, onExport }: ErratanetPanelProps
             <Label>Discover</Label>
             <Button variant="outline" className="w-full gap-2" onClick={() => setBrowseOpen(true)}>
               <Search className="size-4" />
-              Browse packs
+              Browse and Install Packs
             </Button>
             <p className="mt-2 text-[0.6875rem] leading-snug text-muted-foreground">
               Find character cards, guideline packs, and stories to install. No account needed to browse.
