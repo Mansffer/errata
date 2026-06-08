@@ -4,6 +4,8 @@ import { api, type Fragment, type ProseChainEntry } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { StreamMarkdown } from '@/components/ui/stream-markdown'
 import { ChevronRail } from './ChevronRail'
+import { ProseImageHeader } from './ProseImageHeader'
+import { resolveHeaderImage } from '@/lib/fragment-visuals'
 import { GenerationThoughts } from './GenerationThoughts'
 import { type ThoughtStep } from './InlineGenerationInput'
 import { buildAnnotationHighlighter, formatDialogue, composeTextTransforms, stripEmphasisInDialogue, type Annotation } from '@/lib/character-mentions'
@@ -30,6 +32,7 @@ interface ProseBlockProps {
   mentionsEnabled?: boolean
   mentionColors?: Map<string, string>
   onClickMention?: (fragmentId: string) => void
+  mediaById?: Map<string, Fragment>
 }
 
 /** Isolated sub-component so query cache subscriptions don't force ProseBlock re-renders */
@@ -110,6 +113,7 @@ export const ProseBlock = memo(function ProseBlock({
   mentionsEnabled,
   mentionColors,
   onClickMention,
+  mediaById,
 }: ProseBlockProps) {
   // isFirst/isLast are part of the interface for future use
   void isFirst
@@ -417,6 +421,12 @@ export const ProseBlock = memo(function ProseBlock({
     return formatDialogue
   }, [mentionsEnabled, annotations, onClickMention, mentionColors])
 
+  // Resolve a linked image for the passage header (first image visual ref).
+  const headerImage = useMemo(
+    () => (mediaById ? resolveHeaderImage(fragment, mediaById) : null),
+    [fragment, mediaById],
+  )
+
   return (
     <div ref={blockRef} className="group relative mb-6" data-prose-index={displayIndex} data-component-id={`prose-${fragment.id}-block`}>
       {/* Analyzed indicator — subtle dot in the top-right corner */}
@@ -424,6 +434,11 @@ export const ProseBlock = memo(function ProseBlock({
         <div className="absolute -top-1 -right-1 z-[1]" title="Analyzed by librarian">
           <div className="size-2 rounded-full bg-emerald-500/70 shadow-[0_0_4px_rgba(16,185,129,0.3)]" />
         </div>
+      )}
+
+      {/* Linked image — framed plate at the top of the passage */}
+      {headerImage && (
+        <ProseImageHeader storyId={storyId} fragment={fragment} header={headerImage} />
       )}
 
       {/* User prompt header — left-aligned accent bar, display font, inline editable */}

@@ -7,6 +7,7 @@ import { StreamMarkdown } from '@/components/ui/stream-markdown'
 import { Loader2, Wand2, Bookmark } from 'lucide-react'
 import { Hint } from '@/components/ui/prose-text'
 import { useQuickSwitch, useProseWidth, PROSE_WIDTH_VALUES, useCharacterMentions } from '@/lib/theme'
+import { parseVisualRefs } from '@/lib/fragment-visuals'
 import { ProseBlock } from './ProseBlock'
 import { ChapterMarker } from './ChapterMarker'
 import { InlineGenerationInput, type ThoughtStep } from './InlineGenerationInput'
@@ -222,10 +223,16 @@ export function ProseChainView({
     enabled: mentionsEnabled,
   })
 
+  // Prose headers need image fragments even when character-mentions are off.
+  const anyProseHasImage = useMemo(
+    () => fragments.some((f) => parseVisualRefs(f.meta).some((r) => r.kind === 'image')),
+    [fragments],
+  )
+
   const { data: imageFragments = [] } = useQuery({
     queryKey: ['fragments', storyId, 'image'],
     queryFn: () => api.fragments.list(storyId, 'image'),
-    enabled: mentionsEnabled,
+    enabled: mentionsEnabled || anyProseHasImage,
   })
 
   const { data: iconFragments = [] } = useQuery({
@@ -585,6 +592,7 @@ export function ProseChainView({
                           mentionsEnabled={mentionsEnabled}
                           mentionColors={mentionColors}
                           onClickMention={handleMentionClick}
+                          mediaById={mediaById}
                         />
                       )}
                       {!isMarker && !nextIsMarker && (
@@ -634,6 +642,7 @@ export function ProseChainView({
                           mentionsEnabled={mentionsEnabled}
                           mentionColors={mentionColors}
                           onClickMention={handleMentionClick}
+                          mediaById={mediaById}
                         />
                       )}
                       {!isMarker && !nextIsMarker && (
