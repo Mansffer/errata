@@ -40,6 +40,7 @@ import {
 } from 'lucide-react'
 import { useHelp } from '@/hooks/use-help'
 import { componentId } from '@/lib/dom-ids'
+import { FragmentTypeIcon } from '@/components/fragments/fragment-type-icons'
 
 export type SidebarSection =
   | 'story-info'
@@ -47,6 +48,7 @@ export type SidebarSection =
   | 'characters'
   | 'guidelines'
   | 'knowledge'
+  | 'fragment-types'
   | 'media'
   | 'archive'
   | 'branches'
@@ -55,6 +57,7 @@ export type SidebarSection =
   | 'settings'
   | 'erratanet'
   | 'agent-activity'
+  | `fragment-type-${string}`
   | `plugin-${string}`
   | null
 
@@ -111,6 +114,7 @@ export function StorySidebar({
   const { openHelp } = useHelp()
   const queryClient = useQueryClient()
   const [isDragOverArchive, setIsDragOverArchive] = useState(false)
+  const customFragmentSections = (story?.settings.customFragmentTypes ?? []).filter((type) => type.showInSidebar)
 
   const { data: enetConfig } = useQuery({
     queryKey: ['erratanet-config'],
@@ -227,6 +231,20 @@ export function StorySidebar({
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {customFragmentSections.map((section) => (
+                <SidebarMenuItem key={section.type}>
+                  <SidebarMenuButton
+                    isActive={activeSection === `fragment-type-${section.type}`}
+                    onClick={() => handleToggle(`fragment-type-${section.type}`)}
+                    tooltip={section.name}
+                    data-component-id={componentId('sidebar-section', section.type)}
+                  >
+                    <FragmentTypeIcon icon={section.icon} className="size-4" />
+                    <span>{section.name}</span>
+                    <ChevronRight className="ml-auto size-3.5 text-muted-foreground" />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -248,6 +266,19 @@ export function StorySidebar({
                 >
                   <Radio className="size-4" />
                   <span>Agents</span>
+                  <ChevronRight className="ml-auto size-3.5 text-muted-foreground" />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={activeSection === 'fragment-types'}
+                  onClick={() => handleToggle('fragment-types')}
+                  tooltip="Fragment Types"
+                  data-component-id="sidebar-section-fragment-types"
+                >
+                  <Wrench className="size-4" />
+                  <span>Fragment Types</span>
                   <ChevronRight className="ml-auto size-3.5 text-muted-foreground" />
                 </SidebarMenuButton>
               </SidebarMenuItem>

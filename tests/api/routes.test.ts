@@ -123,6 +123,33 @@ describe('Story API routes', () => {
     expect(reloaded.settings).not.toHaveProperty('guidedContinuePrompt')
   })
 
+  it('PATCH /api/stories/:id/settings persists custom fragment types', async () => {
+    const created = await (await apiJson('/stories', story)).json()
+    const res = await apiJson(
+      `/stories/${created.id}/settings`,
+      {
+        customFragmentTypes: [{
+          type: 'location',
+          name: 'Locations',
+          description: 'Places and geography',
+          icon: 'MapPin',
+          showInSidebar: true,
+        }],
+      },
+      'PATCH',
+    )
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.settings.customFragmentTypes).toEqual([{
+      type: 'location',
+      name: 'Locations',
+      description: 'Places and geography',
+      icon: 'MapPin',
+      showInSidebar: true,
+    }])
+  })
+
   it('DELETE /api/stories/:id deletes a story', async () => {
     const created = await (await apiJson('/stories', story)).json()
     const res = await api(`/stories/${created.id}`, { method: 'DELETE' })
@@ -417,5 +444,35 @@ describe('Fragment types route', () => {
       'prose',
       'summary',
     ])
+  })
+
+  it('GET /api/stories/:sid/fragment-types includes story custom types', async () => {
+    await apiJson(
+      `/stories/${storyId}/settings`,
+      {
+        customFragmentTypes: [{
+          type: 'location',
+          name: 'Locations',
+          description: 'Places and geography',
+          icon: 'MapPin',
+          showInSidebar: true,
+        }],
+      },
+      'PATCH',
+    )
+
+    const res = await api(`/stories/${storyId}/fragment-types`)
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toContainEqual({
+      type: 'location',
+      prefix: 'loca',
+      stickyByDefault: false,
+      name: 'Locations',
+      description: 'Places and geography',
+      icon: 'MapPin',
+      custom: true,
+      showInSidebar: true,
+    })
   })
 })

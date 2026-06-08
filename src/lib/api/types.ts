@@ -1,5 +1,13 @@
 // API Types
 
+export interface CustomFragmentType {
+  type: string
+  name: string
+  description: string
+  icon: string
+  showInSidebar: boolean
+}
+
 export interface StoryMeta {
   id: string
   name: string
@@ -35,6 +43,7 @@ export interface StoryMeta {
     disableLibrarianSuggestions?: boolean
     contextOrderMode?: 'simple' | 'advanced'
     fragmentOrder?: string[]
+    customFragmentTypes?: CustomFragmentType[]
     contextCompact?: { type: 'proseLimit' | 'maxTokens' | 'maxCharacters'; value: number }
     /**
      * @deprecated DEPRECATED (summary-fragments migration). Drove the old
@@ -110,6 +119,11 @@ export interface FragmentTypeInfo {
   type: string
   prefix: string
   stickyByDefault: boolean
+  name?: string
+  description?: string
+  icon?: string
+  custom?: boolean
+  showInSidebar?: boolean
 }
 
 export interface GenerationLogSummary {

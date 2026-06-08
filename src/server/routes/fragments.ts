@@ -427,12 +427,35 @@ export function fragmentRoutes(dataDir: string) {
     })
 
     // --- Fragment types ---
-    .get('/stories/:storyId/fragment-types', () => {
-      return registry.listTypes().map((t) => ({
+    .get('/stories/:storyId/fragment-types', async ({ params, set }) => {
+      const story = await getStory(dataDir, params.storyId)
+      if (!story) {
+        set.status = 404
+        return { error: 'Story not found' }
+      }
+      const customTypes = story.settings.customFragmentTypes ?? []
+      return [
+        ...registry.listTypes().map((t) => ({
         type: t.type,
         prefix: t.prefix,
         stickyByDefault: t.stickyByDefault,
-      }))
+        name: t.type,
+        description: '',
+        icon: 'Hash',
+        custom: false,
+        showInSidebar: !t.hiddenFromList,
+        })),
+        ...customTypes.map((t) => ({
+          type: t.type,
+          prefix: t.type.slice(0, 4).toLowerCase(),
+          stickyByDefault: false,
+          name: t.name,
+          description: t.description,
+          icon: t.icon,
+          custom: true,
+          showInSidebar: t.showInSidebar,
+        })),
+      ]
     }, { detail: { summary: 'List available fragment types' } })
 
     // --- Fragment Revert (legacy + versioned) ---

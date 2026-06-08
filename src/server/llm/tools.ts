@@ -225,12 +225,27 @@ export function createFragmentTools(
     description: 'List all available fragment types',
     inputSchema: z.object({}),
     execute: withToolLogging('listFragmentTypes', storyId, async () => {
+      const story = await getStory(dataDir, storyId)
+      const customTypes = story?.settings.customFragmentTypes ?? []
       return {
-        types: registry.listTypes().map((t) => ({
-          type: t.type,
-          prefix: t.prefix,
-          stickyByDefault: t.stickyByDefault,
-        })),
+        types: [
+          ...registry.listTypes().map((t) => ({
+            type: t.type,
+            prefix: t.prefix,
+            stickyByDefault: t.stickyByDefault,
+            name: t.type,
+            description: '',
+            custom: false,
+          })),
+          ...customTypes.map((t) => ({
+            type: t.type,
+            prefix: t.type.slice(0, 4).toLowerCase(),
+            stickyByDefault: false,
+            name: t.name,
+            description: t.description,
+            custom: true,
+          })),
+        ],
       }
     }),
   })

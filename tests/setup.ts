@@ -26,6 +26,7 @@ export function makeTestSettings(overrides?: Partial<StorySettings>): StorySetti
     disableThinking: false,
     contextOrderMode: 'simple',
     fragmentOrder: [],
+    customFragmentTypes: [],
     contextCompact: { type: 'proseLimit', value: 10 },
     summaryCompact: { maxCharacters: 12000, targetCharacters: 9000 },
     enableHierarchicalSummary: false,

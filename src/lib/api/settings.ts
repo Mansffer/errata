@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { StoryMeta } from './types'
+import type { CustomFragmentType, StoryMeta } from './types'
 
 export const settings = {
   update: (storyId: string, data: {
@@ -20,6 +20,7 @@ export const settings = {
     disableLibrarianSuggestions?: boolean
     contextOrderMode?: 'simple' | 'advanced'
     fragmentOrder?: string[]
+    customFragmentTypes?: CustomFragmentType[]
     contextCompact?: { type: 'proseLimit' | 'maxTokens' | 'maxCharacters'; value: number }
     summaryCompact?: { maxCharacters: number; targetCharacters: number }
     enableHierarchicalSummary?: boolean

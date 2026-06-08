@@ -247,6 +247,7 @@ async function seedStory(dataDir: string, options: HarnessOptions): Promise<{
       disableLibrarianSuggestions: false,
       contextOrderMode: 'simple',
       fragmentOrder: [],
+      customFragmentTypes: [],
       contextCompact: { type: options.compactType, value: options.compactValue },
       summaryCompact: { maxCharacters: 12000, targetCharacters: 9000 },
       enableHierarchicalSummary: true,

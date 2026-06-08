@@ -11,6 +11,7 @@ import { SettingsView } from './SettingsView'
 import { LibrarianPanel } from './LibrarianPanel'
 import { ArchivePanel } from './ArchivePanel'
 import { TimelineManagerPanel } from './TimelineManagerPanel'
+import { FragmentTypesPanel } from './FragmentTypesPanel'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ErratanetPanel } from '@/components/erratanet/ErratanetPanel'
@@ -54,6 +55,7 @@ const SECTION_TITLES: Record<string, string> = {
   characters: 'Characters',
   guidelines: 'Guidelines',
   knowledge: 'Knowledge',
+  'fragment-types': 'Fragment Types',
   media: 'Media',
   archive: 'Archive',
   branches: 'Timelines',
@@ -161,9 +163,15 @@ export function DetailPanel({
   }
   const isPlugin = activeSection?.startsWith('plugin-')
   const pluginName = isPlugin ? activeSection.replace('plugin-', '') : null
+  const customFragmentType = activeSection?.startsWith('fragment-type-')
+    ? activeSection.replace('fragment-type-', '')
+    : null
+  const customFragmentDefinition = customFragmentType
+    ? story.settings.customFragmentTypes?.find((def) => def.type === customFragmentType)
+    : undefined
   const title = isPlugin
     ? pluginName ?? 'Plugin'
-    : SECTION_TITLES[activeSection] ?? activeSection
+    : customFragmentDefinition?.name ?? SECTION_TITLES[activeSection] ?? activeSection
 
   const panelWidth = 440
   const isLibrarian = activeSection === 'agent-activity'
@@ -210,6 +218,10 @@ export function DetailPanel({
         <AgentsPanel storyId={storyId} />
       )}
 
+      {activeSection === 'fragment-types' && (
+        <FragmentTypesPanel storyId={storyId} story={story} />
+      )}
+
       {activeSection === 'erratanet' && (
         <ErratanetPanel storyId={storyId} story={story} onExport={onExport} />
       )}
@@ -251,6 +263,18 @@ export function DetailPanel({
           listIdBase="all-fragments-sidebar-list"
           onSelect={onSelectFragment}
           onCreateNew={handleCreateCustomFragment}
+          onImport={onImportFragment}
+          selectedId={selectedFragmentId}
+        />
+      )}
+
+      {customFragmentType && (
+        <FragmentList
+          storyId={storyId}
+          type={customFragmentType}
+          listIdBase={componentId(customFragmentType, 'sidebar-list')}
+          onSelect={onSelectFragment}
+          onCreateNew={() => onCreateFragment(customFragmentType)}
           onImport={onImportFragment}
           selectedId={selectedFragmentId}
         />

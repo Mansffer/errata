@@ -50,6 +50,7 @@ function makeStory(id: string = TEST_STORY_ID): StoryMeta {
       disableLibrarianSuggestions: false,
       contextOrderMode: 'simple',
       fragmentOrder: [],
+      customFragmentTypes: [],
       contextCompact: { type: 'proseLimit', value: 10 },
       summaryCompact: { maxCharacters: 12000, targetCharacters: 9000 },
       enableHierarchicalSummary: false,

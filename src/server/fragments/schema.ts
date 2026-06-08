@@ -8,6 +8,16 @@ export const FragmentTypeSchema = z.string().min(1)
 
 export type FragmentType = z.infer<typeof FragmentTypeSchema>
 
+export const CustomFragmentTypeSchema = z.object({
+  type: z.string().min(1).max(40).regex(/^[a-z0-9][a-z0-9_-]*$/),
+  name: z.string().min(1).max(60),
+  description: z.string().max(250).default(''),
+  icon: z.string().max(40).default('Hash'),
+  showInSidebar: z.boolean().default(true),
+})
+
+export type CustomFragmentType = z.infer<typeof CustomFragmentTypeSchema>
+
 export const FragmentSchema = z.object({
   id: FragmentIdSchema,
   type: FragmentTypeSchema,
@@ -120,6 +130,7 @@ export const StoryMetaSchema = z.object({
       disableLibrarianSuggestions: z.boolean().default(false),
       contextOrderMode: z.enum(['simple', 'advanced']).default('simple'),
       fragmentOrder: z.array(z.string()).default([]),
+      customFragmentTypes: z.array(CustomFragmentTypeSchema).default([]),
       enabledBuiltinTools: z.array(z.string()).optional(),
       contextCompact: z.object({
         type: z.enum(['proseLimit', 'maxTokens', 'maxCharacters']),
@@ -164,7 +175,7 @@ export const StoryMetaSchema = z.object({
         })
         .optional(),
     })
-    .default({ outputFormat: 'markdown', enabledPlugins: [], summarizationThreshold: 4, maxSteps: 10, modelOverrides: {}, generationMode: 'standard', clarifyBeforeGenerate: false, prewriterReasoning: 'normal', disableLibrarianAutoAnalysis: false, autoApplyLibrarianSuggestions: false, disableLibrarianDirections: false, disableLibrarianSuggestions: false, contextOrderMode: 'simple', fragmentOrder: [], enabledBuiltinTools: [], contextCompact: { type: 'proseLimit', value: 10 }, summaryCompact: { maxCharacters: 12000, targetCharacters: 9000 }, enableHierarchicalSummary: false, disableThinking: false }),
+    .default({ outputFormat: 'markdown', enabledPlugins: [], summarizationThreshold: 4, maxSteps: 10, modelOverrides: {}, generationMode: 'standard', clarifyBeforeGenerate: false, prewriterReasoning: 'normal', disableLibrarianAutoAnalysis: false, autoApplyLibrarianSuggestions: false, disableLibrarianDirections: false, disableLibrarianSuggestions: false, contextOrderMode: 'simple', fragmentOrder: [], customFragmentTypes: [], enabledBuiltinTools: [], contextCompact: { type: 'proseLimit', value: 10 }, summaryCompact: { maxCharacters: 12000, targetCharacters: 9000 }, enableHierarchicalSummary: false, disableThinking: false }),
 })
 
 export type StoryMeta = z.infer<typeof StoryMetaSchema>
