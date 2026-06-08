@@ -295,41 +295,75 @@ function GuidedPromptsControls({ story, onUpdate, isPending }: {
   )
 }
 
-function ErrataNetToggle() {
+const DEFAULT_HUB = 'https://errata.tealios.com'
+
+function ErrataNetSection() {
   const queryClient = useQueryClient()
   const { data: config } = useQuery({
     queryKey: ['erratanet-config'],
     queryFn: () => api.erratanet.getConfig(),
   })
-  const setEnabled = useMutation({
-    mutationFn: (enabled: boolean) =>
-      api.erratanet.setConfig(enabled ? { enabled: true, introSeen: true } : { enabled: false }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['erratanet-config'] })
+  const setConfig = useMutation({
+    mutationFn: (data: { enabled?: boolean; hubUrl?: string; introSeen?: boolean }) =>
+      api.erratanet.setConfig(data),
+    onSuccess: (cfg) => {
+      queryClient.setQueryData(['erratanet-config'], cfg)
+      queryClient.invalidateQueries({ queryKey: ['erratanet-account'] })
     },
   })
 
   const enabled = config?.enabled ?? false
 
+  // Local draft for the endpoint so typing does not fire a save on every key.
+  const [endpoint, setEndpoint] = useState('')
+  useEffect(() => {
+    setEndpoint(config?.hubUrl ?? '')
+  }, [config?.hubUrl])
+
+  const saveEndpoint = () => {
+    const next = endpoint.trim().replace(/\/+$/, '')
+    setEndpoint(next)
+    if (next === (config?.hubUrl ?? '')) return
+    setConfig.mutate({ hubUrl: next })
+  }
+
   return (
-    <div>
-      <div className="rounded-lg border border-border/30 p-3">
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-[0.75rem] font-medium text-foreground/80">ErrataNet</p>
-            <p className="text-[0.625rem] leading-snug text-muted-foreground">
-              Browse, install, and publish community packs from a hub.
-            </p>
-          </div>
-          <Toggle
-            checked={enabled}
-            disabled={setEnabled.isPending}
-            onChange={(next) => setEnabled.mutate(next)}
-            label="Toggle ErrataNet"
+    <>
+      <SectionHeading label="ErrataNet" />
+      <div className="space-y-3">
+        <SettingsCard>
+          <SettingRow
+            label="ErrataNet"
+            description="Browse, install, and publish community packs from a hub."
+          >
+            <Toggle
+              checked={enabled}
+              disabled={setConfig.isPending}
+              onChange={(next) => setConfig.mutate(next ? { enabled: true, introSeen: true } : { enabled: false })}
+              label="Toggle ErrataNet"
+            />
+          </SettingRow>
+        </SettingsCard>
+
+        <div className={`rounded-lg border border-border/30 p-3 ${enabled ? '' : 'pointer-events-none opacity-40'}`}>
+          <p className="text-[0.75rem] font-medium text-foreground/80">API endpoint</p>
+          <p className="mt-0.5 text-[0.625rem] leading-snug text-muted-foreground">
+            The hub Errata connects to for browsing and publishing packs.
+          </p>
+          <input
+            value={endpoint}
+            onChange={(e) => setEndpoint(e.target.value)}
+            onBlur={saveEndpoint}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+            placeholder={DEFAULT_HUB}
+            spellCheck={false}
+            autoComplete="off"
+            disabled={!enabled || setConfig.isPending}
+            className="mt-2 h-[28px] w-full rounded-md border border-border/40 bg-background px-2 font-mono text-[0.75rem] text-foreground focus:border-foreground/20 focus:outline-none disabled:opacity-60"
           />
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -801,7 +835,11 @@ export function SettingsPanel({
       {/* Remote access (auth + LAN + tunnel) */}
       <SettingsSection id="set-remote" label="Remote" group="System">
         <SharingPanel />
-        <ErrataNetToggle />
+      </SettingsSection>
+
+      {/* ErrataNet (pack hub: enable + API endpoint) */}
+      <SettingsSection id="set-erratanet" label="ErrataNet" group="System">
+        <ErrataNetSection />
       </SettingsSection>
 
       {/* Plugins */}
