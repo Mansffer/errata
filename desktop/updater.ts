@@ -9,13 +9,11 @@
  * No-ops in development (app.isPackaged === false), where there is no feed.
  */
 import { app, ipcMain, type BrowserWindow } from 'electron'
-import electronUpdater from 'electron-updater'
+import { autoUpdater } from 'electron-updater'
 import { readFile, writeFile, mkdir, cp, readdir, rm } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { errataDataDir } from './sidecar'
-
-const { autoUpdater } = electronUpdater
 
 export type UpdateStatus =
   | 'idle'
