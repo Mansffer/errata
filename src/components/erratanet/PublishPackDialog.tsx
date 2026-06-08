@@ -353,7 +353,7 @@ export function PublishPackDialog({
         <DialogHeader>
           <DialogTitle className="font-display text-lg flex items-center gap-2">
             <UploadCloud className="size-4 text-muted-foreground" />
-            Publish to erratanet
+            Publish to ErrataNet
           </DialogTitle>
           <DialogDescription>
             {isStory
