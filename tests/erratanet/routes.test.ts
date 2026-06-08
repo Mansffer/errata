@@ -334,8 +334,10 @@ describe('erratanet routes', () => {
     })
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(Array.isArray(body.createdFragmentIds)).toBe(true)
-    expect(body.createdFragmentIds.length).toBeGreaterThanOrEqual(1)
+    expect(body.createdStory).toBe(false)
+    expect(body.storyId).toBe(storyId)
+    expect(typeof body.fragmentCount).toBe('number')
+    expect(body.fragmentCount).toBeGreaterThanOrEqual(1)
 
     expect(hubMocks.downloadPack).toHaveBeenCalledWith(dataDir, '@me/test-pack', '2.1.0')
 
