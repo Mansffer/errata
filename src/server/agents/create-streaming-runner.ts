@@ -15,6 +15,7 @@ import { getStory } from '../fragments/storage'
 import { buildContextState } from '../llm/context-builder'
 import { createFragmentTools } from '../llm/tools'
 import { reportUsage } from '../llm/token-tracker'
+import { normalizeTokenUsage } from '../llm/usage-normalizer'
 import { createLogger } from '../logging'
 import { createEventStream } from './create-event-stream'
 import { compileAgentContext, type CompiledAgentContext } from './compile-agent-context'
@@ -203,11 +204,9 @@ export function createStreamingRunner<TOpts extends object, TValidated = Record<
       streamResult.completion.then(async () => {
         try {
           const rawUsage = await result.totalUsage
-          if (rawUsage && typeof rawUsage.inputTokens === 'number') {
-            reportUsage(dataDir, storyId, config.name, {
-              inputTokens: rawUsage.inputTokens,
-              outputTokens: rawUsage.outputTokens ?? 0,
-            }, modelId)
+          const usage = normalizeTokenUsage(rawUsage)
+          if (usage) {
+            reportUsage(dataDir, storyId, config.name, usage, modelId)
           }
         } catch {
           // Some providers may not report usage

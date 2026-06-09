@@ -23,6 +23,7 @@ import {
 } from './storage'
 import { applyFragmentSuggestion } from './suggestions'
 import { reportUsage } from '../llm/token-tracker'
+import { normalizeTokenUsage } from '../llm/usage-normalizer'
 import { createLogger } from '../logging'
 import { compileAgentContext } from '../agents/compile-agent-context'
 import { createEmptyCollector, createAnalysisTools } from './analysis-tools'
@@ -219,11 +220,9 @@ async function runLibrarianInner(
     // Track token usage for librarian analysis
     try {
       const rawUsage = await result.totalUsage
-      if (rawUsage && typeof rawUsage.inputTokens === 'number') {
-        reportUsage(dataDir, storyId, 'librarian.analyze', {
-          inputTokens: rawUsage.inputTokens,
-          outputTokens: rawUsage.outputTokens ?? 0,
-        }, modelId)
+      const usage = normalizeTokenUsage(rawUsage)
+      if (usage) {
+        reportUsage(dataDir, storyId, 'librarian.analyze', usage, modelId)
       }
     } catch {
       // Some providers may not report usage

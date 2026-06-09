@@ -10,6 +10,7 @@ import type { AgentBlockContext } from '../agents/agent-block-context'
 import type { Fragment } from '../fragments/schema'
 import type { TokenUsage } from './generation-logs'
 import { reportUsage } from './token-tracker'
+import { normalizeTokenUsage } from './usage-normalizer'
 import { createLogger } from '../logging'
 
 const logger = createLogger('prewriter')
@@ -389,12 +390,7 @@ export async function runPrewriter(args: RunPrewriterArgs): Promise<PrewriterRes
   let usage: TokenUsage | undefined
   try {
     const rawUsage = await result.totalUsage
-    if (rawUsage && typeof rawUsage.inputTokens === 'number') {
-      usage = {
-        inputTokens: rawUsage.inputTokens,
-        outputTokens: rawUsage.outputTokens ?? 0,
-      }
-    }
+    usage = normalizeTokenUsage(rawUsage)
   } catch {
     // Some providers may not report usage
   }

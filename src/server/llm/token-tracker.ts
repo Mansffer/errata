@@ -97,6 +97,10 @@ interface FlushDelta {
 /** Buffered deltas waiting for flush */
 const pendingFlushData = new Map<string, FlushDelta[]>()
 
+function toTokenCount(value: number): number {
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
 function incrementEntry(entry: UsageEntry, inputTokens: number, outputTokens: number): void {
   entry.inputTokens += inputTokens
   entry.outputTokens += outputTokens
@@ -167,7 +171,9 @@ export function reportUsage(
   usage: { inputTokens: number; outputTokens: number },
   modelId?: string,
 ): void {
-  if (!usage.inputTokens && !usage.outputTokens) return
+  const inputTokens = toTokenCount(usage.inputTokens)
+  const outputTokens = toTokenCount(usage.outputTokens)
+  if (!inputTokens && !outputTokens) return
 
   const model = modelId ?? 'unknown'
 
@@ -178,24 +184,24 @@ export function reportUsage(
     sessionByStory.set(storyId, storyMap)
   }
   const entry = storyMap.get(source) ?? { inputTokens: 0, outputTokens: 0, calls: 0, byModel: {} }
-  incrementEntry(entry, usage.inputTokens, usage.outputTokens)
+  incrementEntry(entry, inputTokens, outputTokens)
 
   const sourceModelEntry = entry.byModel[model] ?? { inputTokens: 0, outputTokens: 0, calls: 0 }
-  incrementEntry(sourceModelEntry, usage.inputTokens, usage.outputTokens)
+  incrementEntry(sourceModelEntry, inputTokens, outputTokens)
   entry.byModel[model] = sourceModelEntry
 
   storyMap.set(source, entry)
 
   // Session: global totals
-  incrementEntry(globalSession, usage.inputTokens, usage.outputTokens)
+  incrementEntry(globalSession, inputTokens, outputTokens)
 
   // Session: global by model
   const gModelEntry = globalSessionByModel.get(model) ?? { inputTokens: 0, outputTokens: 0, calls: 0 }
-  incrementEntry(gModelEntry, usage.inputTokens, usage.outputTokens)
+  incrementEntry(gModelEntry, inputTokens, outputTokens)
   globalSessionByModel.set(model, gModelEntry)
 
   // Persistent: debounced
-  scheduleFlush(dataDir, storyId, { source, modelId: model, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens })
+  scheduleFlush(dataDir, storyId, { source, modelId: model, inputTokens, outputTokens })
 }
 
 export interface UsageSnapshot {
