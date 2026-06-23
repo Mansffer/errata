@@ -13,6 +13,7 @@ import { getActiveProseIds, getProseChain } from '../fragments/prose-chain'
 import { generateFragmentId } from '@/lib/fragment-ids'
 import type { Fragment } from '../fragments/schema'
 import { withBranch } from '../fragments/branches'
+import { withKeyLock } from '../async-lock'
 import {
   saveAnalysis,
   getLatestAnalysisIdsByFragment,
@@ -59,7 +60,12 @@ export async function runLibrarian(
   storyId: string,
   fragmentId: string,
 ): Promise<LibrarianAnalysis> {
-  return withBranch(dataDir, storyId, () => runLibrarianInner(dataDir, storyId, fragmentId))
+  // Serialize analysis runs per story. Concurrent runs would clobber state.json,
+  // the live SSE buffer, the analysis index, deferred summary fragments, and the
+  // summarizedUpTo watermark — all unguarded read-modify-write.
+  return withKeyLock(`librarian:${storyId}`, () =>
+    withBranch(dataDir, storyId, () => runLibrarianInner(dataDir, storyId, fragmentId)),
+  )
 }
 
 async function runLibrarianInner(
@@ -210,9 +216,11 @@ async function runLibrarianInner(
           })
           break
         }
+        case 'finish-step':
+          stepCount++
+          break
         case 'finish':
           lastFinishReason = (p.finishReason as string) ?? 'unknown'
-          stepCount++
           break
       }
     }

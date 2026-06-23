@@ -306,7 +306,7 @@ export async function installFragmentBundle(
           provenance,
           sourceLocalId: undefined,
         })
-        await createFragment(dataDir, storyId, mediaFragment)
+        await createFragment(dataDir, storyId, mediaFragment, { overwrite: true })
         created.push(mediaFragment)
         visualRefs.push({
           fragmentId: mediaId,
@@ -371,7 +371,7 @@ export async function installFragmentBundle(
       order: entry.order ?? 0,
       meta,
     }
-    await createFragment(dataDir, storyId, fragment)
+    await createFragment(dataDir, storyId, fragment, { overwrite: true })
     created.push(fragment)
   }
 

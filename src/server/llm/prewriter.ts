@@ -380,7 +380,9 @@ export async function runPrewriter(args: RunPrewriterArgs): Promise<PrewriterRes
         toolName: (p.toolName as string) ?? '',
         result: p.output,
       })
-    } else if (part.type === 'finish') {
+    } else if (part.type === 'finish-step') {
+      // One step per LLM round-trip. `finish` (singular) fires once for the
+      // whole run, so counting it would always yield 1.
       stepCount++
     }
   }

@@ -196,9 +196,10 @@ export function createStreamingRunner<TOpts extends object, TValidated = Record<
         ? config.messages({ compiled, opts })
         : userMessage ? [{ role: 'user' as const, content: userMessage.content }] : []
 
-      // 11. Stream
-      const result = await agent.stream({ messages })
-      const streamResult = createEventStream(result.fullStream)
+      // 11. Stream — abort the LLM call if the consumer disconnects.
+      const abortController = new AbortController()
+      const result = await agent.stream({ messages, abortSignal: abortController.signal })
+      const streamResult = createEventStream(result.fullStream, () => abortController.abort())
 
       // 12. Track token usage after stream completes
       streamResult.completion.then(async () => {
