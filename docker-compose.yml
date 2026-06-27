@@ -19,6 +19,9 @@ services:
     volumes:
       - errata-data:/app/data
       - errata-plugins:/app/plugins
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.errata-service.loadbalancer.server.port=7739"
     restart: unless-stopped
 
 volumes:
