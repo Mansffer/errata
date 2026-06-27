@@ -3,8 +3,9 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
-# Copy dependency manifests
-COPY package.json ./
+# Copy dependency manifests and local packages first for layer caching
+COPY package.json bun.lockb* ./
+COPY packages/ ./packages/
 
 # Install dependencies
 RUN bun install
