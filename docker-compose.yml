@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  errata:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: errata
+    ports:
+      - "7739:7739"
+    environment:
+      - PORT=7739
+      - HOST=0.0.0.0
+      - DATA_DIR=/app/data
+      - PLUGIN_DIR=/app/plugins
+      - NODE_ENV=production
+      # Uncomment to allow external plugins to override static ones
+      # - PLUGIN_EXTERNAL_OVERRIDE=1
+    volumes:
+      - errata-data:/app/data
+      - errata-plugins:/app/plugins
+    restart: unless-stopped
+
+volumes:
+  errata-data:
+  errata-plugins:
