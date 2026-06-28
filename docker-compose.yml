@@ -22,6 +22,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.services.errata-service.loadbalancer.server.port=7739"
+      - "traefik.http.routers.errata-router.middlewares=errata-auth"
+      - "traefik.http.middlewares.errata-auth.basicauth.users=${BASIC_AUTH_USERS}"
     restart: unless-stopped
 
 volumes:
