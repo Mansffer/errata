@@ -828,7 +828,6 @@ function StoryCard({ story, onDelete, isRecent }: { story: StoryMeta; onDelete: 
       <Link
         to="/story/$storyId"
         params={{ storyId: story.id }}
-        data-cuelume-hover="tick"
         data-cuelume-press=""
         data-cuelume-release=""
         className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
