@@ -1,12 +1,31 @@
 import { useCallback, useEffect, useState } from 'react'
-import { bind, setEnabled as setCuelumeEnabled } from 'cuelume'
+import {
+  bind,
+  play,
+  setEnabled as setCuelumeEnabled,
+  sounds,
+  type SoundName,
+} from 'cuelume'
 
 export const INTERACTION_SOUNDS_STORAGE_KEY = 'errata-interaction-sounds'
 
 const INTERACTION_SOUNDS_EVENT = 'errata-interaction-sounds-change'
+const SURFACE_SELECTOR = '[data-cuelume-surface]'
+const DISCLOSURE_SELECTOR = '[data-cuelume-disclosure]'
+const SOUND_NAMES = new Set<string>(sounds)
 
 interface StorageReader {
   getItem: (key: string) => string | null
+}
+
+function resolveSound(value: string | null, fallback: SoundName): SoundName {
+  return value && SOUND_NAMES.has(value) ? value as SoundName : fallback
+}
+
+function collectMatches(node: Node, selector: string, matches: Set<Element>) {
+  if (!(node instanceof Element)) return
+  if (node.matches(selector)) matches.add(node)
+  node.querySelectorAll(selector).forEach((element) => matches.add(element))
 }
 
 function getBrowserStorage(): StorageReader | null {
@@ -62,6 +81,48 @@ export function InteractionSoundsController() {
 
   useEffect(() => {
     bind()
+
+    const observer = new MutationObserver((records) => {
+      const openedSurfaces = new Set<Element>()
+      const closedSurfaces = new Set<Element>()
+      let disclosureCue: SoundName | null = null
+
+      for (const record of records) {
+        if (record.type === 'childList') {
+          record.addedNodes.forEach((node) => collectMatches(node, SURFACE_SELECTOR, openedSurfaces))
+          record.removedNodes.forEach((node) => collectMatches(node, SURFACE_SELECTOR, closedSurfaces))
+          continue
+        }
+
+        if (
+          record.type === 'attributes'
+          && record.target instanceof Element
+          && record.target.matches(DISCLOSURE_SELECTOR)
+        ) {
+          disclosureCue = record.target.getAttribute('aria-expanded') === 'true'
+            ? 'bloom'
+            : 'droplet'
+        }
+      }
+
+      const openedSurface = openedSurfaces.values().next().value
+      if (openedSurface) {
+        play(resolveSound(openedSurface.getAttribute('data-cuelume-surface'), 'bloom'))
+      } else if (closedSurfaces.size > 0) {
+        play('droplet')
+      } else if (disclosureCue) {
+        play(disclosureCue)
+      }
+    })
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-expanded'],
+    })
+
+    return () => observer.disconnect()
   }, [])
 
   return null
