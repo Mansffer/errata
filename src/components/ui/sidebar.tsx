@@ -264,6 +264,10 @@ function SidebarTrigger({
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon"
+      data-cuelume-press={undefined}
+      data-cuelume-release={undefined}
+      data-cuelume-hover="tick"
+      data-cuelume-toggle="press"
       className={cn("size-7", className)}
       onClick={(event) => {
         onClick?.(event)
@@ -515,6 +519,8 @@ function SidebarMenuButton({
       data-sidebar="menu-button"
       data-size={size}
       data-active={isActive}
+      data-cuelume-hover="tick"
+      data-cuelume-toggle="press"
       className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
       {...props}
     />
@@ -558,6 +564,8 @@ function SidebarMenuAction({
     <Comp
       data-slot="sidebar-menu-action"
       data-sidebar="menu-action"
+      data-cuelume-hover="tick"
+      data-cuelume-toggle="press"
       className={cn(
         "text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer-hover/menu-button:text-sidebar-accent-foreground absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
         // Increases the hit area of the button on mobile.

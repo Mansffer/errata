@@ -106,10 +106,13 @@ export function InteractionSoundsController() {
       }
 
       const openedSurface = openedSurfaces.values().next().value
+      const closedSurface = Array.from(closedSurfaces).find(
+        (surface) => surface.getAttribute('data-cuelume-close') !== 'none',
+      )
       if (openedSurface) {
         play(resolveSound(openedSurface.getAttribute('data-cuelume-surface'), 'bloom'))
-      } else if (closedSurfaces.size > 0) {
-        play('droplet')
+      } else if (closedSurface) {
+        play(resolveSound(closedSurface.getAttribute('data-cuelume-close'), 'droplet'))
       } else if (disclosureCue) {
         play(disclosureCue)
       }

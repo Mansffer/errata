@@ -96,6 +96,7 @@ export function HelpPanel() {
               }`
         }`}
         data-cuelume-surface="bloom"
+        data-cuelume-close="none"
         data-component-id="help-panel-root"
       >
         {/* Header */}
