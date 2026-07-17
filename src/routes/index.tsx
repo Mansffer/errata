@@ -34,10 +34,11 @@ import {
 } from '@/lib/importers/tavern-card'
 import { GeneratedCover } from '@/components/GeneratedCover'
 import { useTheme } from '@/lib/theme'
+import { useInteractionSounds } from '@/lib/interaction-sounds'
 import { ProviderList, ProviderPanel } from '@/components/settings/ProviderManager'
 import { AboutSection } from '@/components/settings/AboutPanel'
 import { DesktopUpdatesControls } from '@/components/settings/DesktopUpdatesPanel'
-import { SectionHeading } from '@/components/settings/primitives'
+import { SectionHeading, SettingRow, SettingsCard, Toggle } from '@/components/settings/primitives'
 import { getStoryDisplayName } from '@/lib/story-display'
 
 const THEME_OPTIONS = [
@@ -52,6 +53,7 @@ function StoryListPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
+  const [interactionSounds, setInteractionSounds] = useInteractionSounds()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -702,6 +704,7 @@ function StoryListPage() {
                     type="button"
                     onClick={() => setTheme(value)}
                     aria-pressed={theme === value}
+                    data-cuelume-toggle=""
                     className={`flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 text-xs transition-colors ${
                       theme === value
                         ? 'border-primary bg-primary/10 text-foreground'
@@ -713,6 +716,15 @@ function StoryListPage() {
                   </button>
                 ))}
               </div>
+              <SettingsCard className="mt-3">
+                <SettingRow label="Interaction sounds" description="Play subtle feedback for controls">
+                  <Toggle
+                    checked={interactionSounds}
+                    onChange={setInteractionSounds}
+                    label="Toggle interaction sounds"
+                  />
+                </SettingRow>
+              </SettingsCard>
             </section>
 
             <section>
@@ -816,6 +828,9 @@ function StoryCard({ story, onDelete, isRecent }: { story: StoryMeta; onDelete: 
       <Link
         to="/story/$storyId"
         params={{ storyId: story.id }}
+        data-cuelume-hover="tick"
+        data-cuelume-press=""
+        data-cuelume-release=""
         className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
         onClick={() => {
           localStorage.setItem(`errata:last-accessed:${story.id}`, new Date().toISOString())

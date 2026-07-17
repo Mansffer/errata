@@ -15,6 +15,7 @@ import { ModelSelect } from '@/components/settings/ModelSelect'
 import { ProviderSelect } from '@/components/settings/ProviderSelect'
 import { getDesktopBridge, onDesktopBridgeReady } from '@/lib/desktop'
 import { resolveProvider, getInheritLabel } from '@/lib/model-role-helpers'
+import { useInteractionSounds } from '@/lib/interaction-sounds'
 import {
   SettingsSection,
   SectionHeading,
@@ -410,6 +411,7 @@ export function SettingsPanel({
   const [transformContext, setTransformContext] = useTransformContext()
   const { openHelp } = useHelp()
   const { theme, setTheme } = useTheme()
+  const [interactionSounds, setInteractionSounds] = useInteractionSounds()
   const [quickSwitch, setQuickSwitch] = useQuickSwitch()
   const [characterMentions, setCharacterMentions] = useCharacterMentions()
   const [timelineBar, setTimelineBar] = useTimelineBar()
@@ -446,6 +448,13 @@ export function SettingsPanel({
                 { value: 'high-contrast', label: 'High' },
               ]}
               onChange={setTheme}
+            />
+          </SettingRow>
+          <SettingRow label="Interaction sounds" description="Play subtle feedback for controls">
+            <Toggle
+              checked={interactionSounds}
+              onChange={setInteractionSounds}
+              label="Toggle interaction sounds"
             />
           </SettingRow>
           <SettingRow label="UI size" description="Scale the entire interface">
