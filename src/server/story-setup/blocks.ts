@@ -2,7 +2,7 @@ import type { ContextBlock } from '../llm/context-builder'
 import type { AgentBlockContext } from '../agents/agent-block-context'
 import { buildBasePreviewContext } from '../agents/block-helpers'
 import { instructionRegistry } from '../instructions'
-import { listStorySetupFragments } from './sync'
+import { listStorySetupFragmentContext } from './sync'
 
 export const STORY_SETUP_SYSTEM_PROMPT = `You are Errata's story setup collaborator. Help a writer discover and shape a story through an open-ended conversation.
 
@@ -21,7 +21,7 @@ Use this checklist to guide the conversation:
 
 Before every conversational response, call updateStorySetup exactly once. Include all seven checklist entries in the listed order. Mark an entry partial when there is a useful clue but an important decision remains. Set story to null until there is enough information for a useful working title and description; after that, include the latest title and description on every call.
 
-The fragments array must be the complete current set of story fragments, not only changes from the previous turn. Create or revise guideline, knowledge, character, and prose fragments as soon as the conversation supports them. Give every fragment a short lowercase key made of letters, numbers, and hyphens. Keep that key unchanged when revising or renaming the fragment. Keep uncertainty visible in fragment content instead of inventing a major decision. After the tool saves the snapshot, ask about the most useful missing or partial entry. Do not mention the tool call.
+The fragments array must be the complete current set of fragments managed by this setup conversation, not only changes from the previous turn. Create or revise guideline, knowledge, character, and prose fragments as soon as the conversation supports them. Give every fragment a short lowercase key made of letters, numbers, and hyphens. Keep that key unchanged when revising or renaming the fragment. Keep uncertainty visible in fragment content instead of inventing a major decision. After the tool saves the snapshot, ask about the most useful missing or partial entry. Do not mention the tool call.
 
 Keep each response concise, usually two to four sentences. Do not expose fragment mechanics. The writer can open the story at any point, so help them notice important ambiguity without delaying them for completeness.`
 
@@ -41,19 +41,34 @@ export function createStorySetupBlocks(ctx: AgentBlockContext): ContextBlock[] {
     ].join('\n')).join('\n\n')}`
     : ''
 
+  const referenceFragments = ctx.storySetupReferenceFragments ?? []
+  const existingReferences = referenceFragments.length > 0
+    ? `\n\nExisting writer-created fragments follow. Treat them as established source material and use their full contents to guide the conversation. Do not recreate them or include them in updateStorySetup; that tool manages only fragments created through this setup conversation.\n\n${referenceFragments.map(fragment => [
+      `### ${fragment.name}`,
+      `id: ${fragment.id}`,
+      `type: ${fragment.type}`,
+      `description: ${fragment.description}`,
+      fragment.content,
+    ].join('\n')).join('\n\n')}`
+    : ''
+
   return [{
     id: 'story-setup-instructions',
     role: 'system',
-    content: `${instructionRegistry.resolve('story-setup.system', ctx.modelId)}${existingStory}${existingFragments}`,
+    content: `${instructionRegistry.resolve('story-setup.system', ctx.modelId)}${existingStory}${existingFragments}${existingReferences}`,
     order: 100,
     source: 'builtin',
   }]
 }
 
 export async function buildStorySetupPreviewContext(dataDir: string, storyId: string): Promise<AgentBlockContext> {
-  const [context, storySetupFragments] = await Promise.all([
+  const [context, fragmentContext] = await Promise.all([
     buildBasePreviewContext(dataDir, storyId),
-    listStorySetupFragments(dataDir, storyId),
+    listStorySetupFragmentContext(dataDir, storyId),
   ])
-  return { ...context, storySetupFragments }
+  return {
+    ...context,
+    storySetupFragments: fragmentContext.setupFragments,
+    storySetupReferenceFragments: fragmentContext.referenceFragments,
+  }
 }

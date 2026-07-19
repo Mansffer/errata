@@ -1,7 +1,7 @@
 import { createStreamingRunner } from '../agents/create-streaming-runner'
 import { tool } from 'ai'
 import { StorySetupSnapshotSchema } from './schema'
-import { listStorySetupFragments, syncStorySetupSnapshot } from './sync'
+import { listStorySetupFragmentContext, syncStorySetupSnapshot } from './sync'
 
 export interface StorySetupChatOptions {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
@@ -12,9 +12,13 @@ export const storySetupChat = createStreamingRunner<StorySetupChatOptions>({
   role: 'story-setup.chat',
   buildContext: false,
   readOnly: true,
-  extraContext: async ({ dataDir, storyId }) => ({
-    storySetupFragments: await listStorySetupFragments(dataDir, storyId),
-  }),
+  extraContext: async ({ dataDir, storyId }) => {
+    const { setupFragments, referenceFragments } = await listStorySetupFragmentContext(dataDir, storyId)
+    return {
+      storySetupFragments: setupFragments,
+      storySetupReferenceFragments: referenceFragments,
+    }
+  },
   tools: ({ dataDir, storyId }) => ({
     updateStorySetup: tool({
       description: 'Save the working story details and fragments, and replace the visible checklist before asking the writer the next question.',

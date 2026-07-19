@@ -26,6 +26,7 @@ export interface AgentBlockContext {
 
   // Story setup
   storySetupFragments?: Fragment[]
+  storySetupReferenceFragments?: Fragment[]
 
   // Librarian analyze
   allCharacters?: Fragment[]
