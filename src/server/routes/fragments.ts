@@ -24,6 +24,7 @@ import { generateFragmentId } from '@/lib/fragment-ids'
 import { registry } from '../fragments/registry'
 import { triggerLibrarian } from '../librarian/scheduler'
 import { clearAnalysisIndexEntry } from '../librarian/storage'
+import { getAgentBlockConfig } from '../agents/agent-block-storage'
 import { createLogger } from '../logging'
 import { installFragmentBundle } from '../erratanet/pack-install'
 import type { Fragment } from '../fragments/schema'
@@ -33,6 +34,15 @@ function hasMaterialProseChange(before: Fragment, after: Fragment): boolean {
   return before.name !== after.name
     || before.description !== after.description
     || before.content !== after.content
+}
+
+async function isLibrarianAutoAnalysisDisabled(dataDir: string, storyId: string): Promise<boolean> {
+  const [story, librarianConfig] = await Promise.all([
+    getStory(dataDir, storyId),
+    getAgentBlockConfig(dataDir, storyId, 'librarian.analyze'),
+  ])
+  return story?.settings.disableLibrarianAutoAnalysis === true
+    || librarianConfig.disableAutoAnalysis === true
 }
 
 export function fragmentRoutes(dataDir: string) {
@@ -178,11 +188,13 @@ export function fragmentRoutes(dataDir: string) {
 
       if (existing.type === 'prose' && hasMaterialProseChange(existing, updated)) {
         clearAnalysisIndexEntry(dataDir, params.storyId, updated.id).catch(() => {})
-        Promise.resolve(triggerLibrarian(dataDir, params.storyId, updated)).catch((err) => {
-          requestLogger.error('triggerLibrarian failed after prose update', {
-            error: err instanceof Error ? err.message : String(err),
+        if (!(await isLibrarianAutoAnalysisDisabled(dataDir, params.storyId))) {
+          Promise.resolve(triggerLibrarian(dataDir, params.storyId, updated)).catch((err) => {
+            requestLogger.error('triggerLibrarian failed after prose update', {
+              error: err instanceof Error ? err.message : String(err),
+            })
           })
-        })
+        }
       }
 
       return updated
@@ -225,11 +237,13 @@ export function fragmentRoutes(dataDir: string) {
 
       if (existing.type === 'prose' && hasMaterialProseChange(existing, updated)) {
         clearAnalysisIndexEntry(dataDir, params.storyId, updated.id).catch(() => {})
-        Promise.resolve(triggerLibrarian(dataDir, params.storyId, updated)).catch((err) => {
-          requestLogger.error('triggerLibrarian failed after prose edit', {
-            error: err instanceof Error ? err.message : String(err),
+        if (!(await isLibrarianAutoAnalysisDisabled(dataDir, params.storyId))) {
+          Promise.resolve(triggerLibrarian(dataDir, params.storyId, updated)).catch((err) => {
+            requestLogger.error('triggerLibrarian failed after prose edit', {
+              error: err instanceof Error ? err.message : String(err),
+            })
           })
-        })
+        }
       }
 
       return updated
