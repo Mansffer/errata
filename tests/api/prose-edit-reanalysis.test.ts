@@ -109,6 +109,22 @@ describe('prose edit reanalysis trigger', () => {
     expect(mockedTriggerLibrarian).not.toHaveBeenCalled()
   })
 
+  it('does not trigger librarian on prose PUT when agent auto analysis is disabled', async () => {
+    const { storyId, fragmentId } = await createStoryAndProse()
+    await apiJson(`/stories/${storyId}/agent-blocks/librarian.analyze/config`, {
+      disableAutoAnalysis: true,
+    }, 'PATCH')
+
+    const res = await apiJson(`/stories/${storyId}/fragments/${fragmentId}`, {
+      name: 'Opening',
+      description: 'Initial',
+      content: 'New content',
+    }, 'PUT')
+
+    expect(res.status).toBe(200)
+    expect(mockedTriggerLibrarian).not.toHaveBeenCalled()
+  })
+
   it('triggers librarian on prose PATCH when text replacement changes content', async () => {
     const { storyId, fragmentId } = await createStoryAndProse()
 
