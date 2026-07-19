@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTempDir, makeTestSettings, seedTestProvider } from '../setup'
-import { createStory, getStory, listFragments } from '@/server/fragments/storage'
+import { createFragment, createStory, getStory, listFragments } from '@/server/fragments/storage'
 import { getProseChain } from '@/server/fragments/prose-chain'
 import { syncStorySetupSnapshot } from '@/server/story-setup/sync'
 import type { StoryMeta } from '@/server/fragments/schema'
@@ -127,6 +127,63 @@ describe('story setup routes', () => {
     expect(response.status).toBe(200)
     expect(mockAgentCtor).toHaveBeenCalledWith(expect.objectContaining({
       instructions: expect.stringMatching(/Existing story setup fragments[\s\S]*Mara[\s\S]*altered her childhood/),
+    }))
+  })
+
+  it('includes writer-created character and guideline fragments as read-only context', async () => {
+    const now = new Date().toISOString()
+    await createFragment(dataDir, 'story-setup-test', {
+      id: 'ch-orin',
+      type: 'character',
+      name: 'Orin Vale',
+      description: 'Cartographer hiding a royal lineage',
+      content: 'Orin refuses every title and maps roads that no longer exist.',
+      tags: [],
+      refs: [],
+      sticky: false,
+      placement: 'user',
+      createdAt: now,
+      updatedAt: now,
+      order: 0,
+      meta: {},
+      archived: false,
+      version: 1,
+      versions: [],
+    })
+    await createFragment(dataDir, 'story-setup-test', {
+      id: 'gl-voice',
+      type: 'guideline',
+      name: 'Narrative voice',
+      description: 'Close third person in present tense',
+      content: 'Stay close to Orin and keep the prose restrained and tactile.',
+      tags: [],
+      refs: [],
+      sticky: true,
+      placement: 'system',
+      createdAt: now,
+      updatedAt: now,
+      order: 1,
+      meta: {},
+      archived: false,
+      version: 1,
+      versions: [],
+    })
+    mockChatResponse('What danger is Orin mapping toward?')
+
+    const response = await app.fetch(new Request(
+      'http://localhost/api/stories/story-setup-test/setup/chat',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [] }),
+      },
+    ))
+
+    expect(response.status).toBe(200)
+    expect(mockAgentCtor).toHaveBeenCalledWith(expect.objectContaining({
+      instructions: expect.stringMatching(
+        /Existing writer-created fragments[\s\S]*Orin Vale[\s\S]*roads that no longer exist[\s\S]*Narrative voice[\s\S]*restrained and tactile/,
+      ),
     }))
   })
 
